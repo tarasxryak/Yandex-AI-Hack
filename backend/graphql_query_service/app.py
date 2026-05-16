@@ -122,7 +122,7 @@ def configure_cors(app: Flask) -> None:
     origins = parse_cors_origins(
         os.getenv(
             "FRONTEND_ORIGINS",
-            "https://yandex-ai-hack-zh9q.vercel.app,http://localhost:5173,http://127.0.0.1:5173",
+            "https://yandex-ai-hack.vercel.app/,http://localhost:5173,http://127.0.0.1:5173",
         )
     )
     CORS(
