@@ -5,7 +5,10 @@ GraphQL introspection proxy service.
 ## Run Locally
 
 ```bash
-go run ./cmd/docs-parser -serve :8080
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+flask --app app run --host 0.0.0.0 --port 8080
 ```
 
 ## Docker
@@ -52,46 +55,21 @@ curl -X POST http://localhost:8080/introspect \
   }'
 ```
 
-By default the service returns a compact preprocessed schema instead of raw
-GraphQL introspection JSON. It also includes SDL generated from that compact
-schema:
+The service returns SDL generated from GraphQL introspection with `graphql-core`
+`build_client_schema` and `print_schema`. It does not return the raw
+introspection JSON:
 
 ```json
 {
   "success": true,
   "status": "ok",
-  "schema": {
-    "query_type": "Query",
-    "queries": [
-      {
-        "name": "user",
-        "type": "User",
-        "args": [
-          {"name": "id", "type": "ID!", "required": true}
-        ]
-      }
-    ],
-    "types": [
-      {
-        "name": "User",
-        "fields": [
-          {"name": "id", "type": "ID!"},
-          {"name": "name", "type": "String"}
-        ]
-      }
-    ]
-  },
   "sdl": "type Query {\n  user(id: ID!): User\n}\n..."
 }
 ```
 
-To also include the raw introspection response:
+## Tests
 
 ```bash
-curl -X POST http://localhost:8080/introspect \
-  -H "Content-Type: application/json" \
-  -d '{
-    "endpoint": "https://target-api.com/graphql",
-    "include_raw": true
-  }'
+pip install -r requirements-dev.txt
+pytest
 ```

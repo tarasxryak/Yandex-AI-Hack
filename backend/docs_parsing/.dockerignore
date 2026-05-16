@@ -3,7 +3,13 @@
 Dockerfile
 docker-compose.yml
 introspection.json
+intro2.json
+intro.gql
 *.log
 tmp/
 dist/
 coverage.out
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
