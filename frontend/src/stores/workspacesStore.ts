@@ -5,6 +5,9 @@ export type WorkspaceRequest = {
     id: string;
     time: string;
     message: string;
+    query: unknown;
+    note: string;
+    hints: string[];
 };
 
 export type Workspace = {

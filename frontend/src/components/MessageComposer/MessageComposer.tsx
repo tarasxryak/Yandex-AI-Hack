@@ -3,9 +3,17 @@ import { getApiUrl } from '../../config/api';
 import { useWorkspacesStore } from '../../stores/workspacesStore';
 import styles from './MessageComposer.module.css';
 
+type GeneratedGraphqlRequest = {
+    query?: unknown;
+    note?: unknown;
+    hints?: unknown;
+};
+
 type QueryResponse = {
     success: boolean;
     error?: string;
+    answer?: string;
+    graphql?: GeneratedGraphqlRequest | null;
 };
 
 const getRequestTime = () =>
@@ -13,6 +21,29 @@ const getRequestTime = () =>
         hour: '2-digit',
         minute: '2-digit',
     }).format(new Date());
+
+const parseAnswer = (answer: string | undefined): GeneratedGraphqlRequest => {
+    if (!answer) {
+        return {};
+    }
+
+    try {
+        const parsed = JSON.parse(answer) as unknown;
+        return isGeneratedGraphqlRequest(parsed) ? parsed : {};
+    } catch {
+        return {};
+    }
+};
+
+const isGeneratedGraphqlRequest = (
+    value: unknown,
+): value is GeneratedGraphqlRequest =>
+    typeof value === 'object' && value !== null && 'query' in value;
+
+const normalizeHints = (hints: unknown) =>
+    Array.isArray(hints)
+        ? hints.filter((hint): hint is string => typeof hint === 'string')
+        : [];
 
 const MessageComposer = () => {
     const activeWorkspaceId = useWorkspacesStore(
@@ -53,10 +84,18 @@ const MessageComposer = () => {
                 throw new Error(result.error || 'Не удалось отправить запрос');
             }
 
+            const generatedRequest = result.graphql ?? parseAnswer(result.answer);
+
             addRequest(activeWorkspaceId, {
                 id: crypto.randomUUID(),
                 time: getRequestTime(),
                 message: trimmedMessage,
+                query: generatedRequest.query ?? null,
+                note:
+                    typeof generatedRequest.note === 'string'
+                        ? generatedRequest.note
+                        : '',
+                hints: normalizeHints(generatedRequest.hints),
             });
             setMessage('');
         } catch (submitError) {
