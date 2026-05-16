@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from uuid import uuid4
 from typing import Any
 
 import requests
@@ -37,15 +38,13 @@ def create_app() -> Flask:
     @app.post("/create_workspace")
     def create_workspace_route():
         payload: dict[str, Any] = request.get_json(silent=True) or {}
-        chat_id = extract_chat_id(payload)
+        chat_id = extract_chat_id(payload) or create_workspace_id()
         endpoint = str(
             payload.get("endpoint") or payload.get("url") or payload.get("graphql_endpoint") or ""
         ).strip()
         token = str(payload.get("token") or "").strip()
         headers = payload.get("headers", {})
 
-        if not chat_id:
-            return jsonify({"success": False, "error": "chat_id is required"}), 400
         if not endpoint:
             return jsonify({"success": False, "error": "endpoint is required"}), 400
         if not isinstance(headers, dict):
@@ -62,6 +61,7 @@ def create_app() -> Flask:
         return jsonify(
             {
                 "success": True,
+                "id": chat_id,
                 "chat_id": chat_id,
                 "schema_saved": True,
                 "schema_length": len(schema),
@@ -98,6 +98,7 @@ def create_app() -> Flask:
         return jsonify(
             {
                 "success": True,
+                "id": chat_id,
                 "chat_id": chat_id,
                 "answer": result["answer"],
                 "graphql": graphql,
@@ -203,6 +204,10 @@ def introspection_status_code(status: str) -> int:
 
 def extract_chat_id(payload: dict[str, Any]) -> str:
     return str(payload.get("chat_id") or payload.get("id") or "").strip()
+
+
+def create_workspace_id() -> str:
+    return uuid4().hex
 
 
 app = create_app()
