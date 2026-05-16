@@ -57,8 +57,17 @@ def create_app() -> Flask:
             http_status = introspection_status_code(status)
             return jsonify({"success": False, "introspection": introspection}), http_status
 
-        workspace = save_schema(chat_id=chat_id, schema=str(introspection.get("sdl") or ""))
-        return jsonify({"success": True, "workspace": workspace, "introspection": introspection}), 201
+        schema = str(introspection.get("sdl") or "")
+        save_schema(chat_id=chat_id, schema=schema)
+        return jsonify(
+            {
+                "success": True,
+                "chat_id": chat_id,
+                "schema_saved": True,
+                "schema_length": len(schema),
+                "introspection_status": str(introspection.get("status") or "ok"),
+            }
+        ), 201
 
     @app.post("/query")
     def query_route():
@@ -193,7 +202,7 @@ def introspection_status_code(status: str) -> int:
 
 
 def extract_chat_id(payload: dict[str, Any]) -> str:
-    return str(payload.get("chat_id") or payload.get("workspace_id") or payload.get("id") or "").strip()
+    return str(payload.get("chat_id") or payload.get("id") or "").strip()
 
 
 app = create_app()

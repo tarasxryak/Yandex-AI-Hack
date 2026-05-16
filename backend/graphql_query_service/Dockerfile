@@ -11,9 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN useradd --create-home --uid 10001 appuser \
-    && mkdir -p /data \
-    && chown -R appuser:appuser /data
+RUN useradd --create-home --uid 10001 appuser
 USER appuser
 
 EXPOSE 8080
