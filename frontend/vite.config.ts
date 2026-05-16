@@ -6,8 +6,11 @@ export default defineConfig({
     plugins: [react()],
     server: {
         proxy: {
-            '/create_workspace': 'http://localhost:8080',
-            '/query': 'http://localhost:8080',
+            '/api/backend': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+                rewrite: path => path.replace(/^\/api\/backend/, ''),
+            },
         },
     },
 });
