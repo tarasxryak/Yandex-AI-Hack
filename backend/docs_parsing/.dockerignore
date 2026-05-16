@@ -1,0 +1,9 @@
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+introspection.json
+*.log
+tmp/
+dist/
+coverage.out
