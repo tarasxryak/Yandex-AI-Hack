@@ -67,5 +67,19 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  nocodb:
+    image: nocodb/nocodb:latest
+    profiles:
+      - tools
+    ports:
+      - "${NOCODB_BIND:-127.0.0.1}:${NOCODB_PORT:-8083}:8080"
+    volumes:
+      - nocodb-data:/usr/app/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   mysql-data:
+  nocodb-data:

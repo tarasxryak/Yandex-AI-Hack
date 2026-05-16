@@ -22,6 +22,7 @@ Docker Compose поднимает:
 - `docs-parser`: внутренний сервис Compose, наружу не публикуется
 - `mysql`: внутренний сервис Compose, наружу не публикуется
 - `adminer`: опционально через profile `tools`, `http://127.0.0.1:8082`
+- `nocodb`: опционально через profile `tools`, `http://127.0.0.1:8083`
 
 ## Хранение
 
@@ -62,10 +63,14 @@ MYSQL_PASSWORD="ruchki"
 
 DOCS_PARSER_URL="http://docs-parser:8080"
 
+FRONTEND_ORIGINS="https://yandex-ai-hack-zh9q.vercel.app,http://localhost:5173,http://127.0.0.1:5173"
+
 API_BIND="0.0.0.0"
 API_PORT="8080"
 ADMINER_BIND="127.0.0.1"
 ADMINER_PORT="8082"
+NOCODB_BIND="127.0.0.1"
+NOCODB_PORT="8083"
 ```
 
 ## Запуск
@@ -103,6 +108,31 @@ Server: mysql
 Username: ruchki
 Password: ruchki
 Database: ruchki
+```
+
+NocoDB доступен на `http://localhost:8083`.
+
+Запустить NocoDB:
+
+```bash
+docker compose --profile tools up -d nocodb
+```
+
+Подключение к MySQL внутри NocoDB:
+
+```text
+Host: mysql
+Port: 3306
+Database: ruchki
+Username: ruchki
+Password: значение MYSQL_PASSWORD из .env
+```
+
+На сервере Adminer и NocoDB по умолчанию слушают только `127.0.0.1`. Для доступа
+с локальной машины используй SSH tunnel:
+
+```bash
+ssh -L 8082:127.0.0.1:8082 -L 8083:127.0.0.1:8083 <user>@<server-ip>
 ```
 
 ## Запуск на сервере
