@@ -1,0 +1,82 @@
+:root {
+    font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+
+    --color-accent: #952dff;
+    --color-accent-hover: #a64cff;
+    --color-accent-active: #7c22e6;
+    --color-accent-secondary: #5026cc;
+
+    --color-accent-soft: #26143d;
+    --color-accent-muted: #3a1d66;
+
+    --color-bg: #0b0811;
+    --color-bg-secondary: #120d1c;
+    --color-surface: #181124;
+    --color-surface-elevated: #211832;
+
+    --color-text: #f6f0ff;
+    --color-text-secondary: #d4c8e8;
+    --color-text-muted: #9b8cad;
+    --color-text-inverse: #0b0811;
+
+    --color-border: #2f2440;
+    --color-border-strong: #4b3868;
+
+    --color-success: #36d399;
+    --color-warning: #f0b84f;
+    --color-error: #ff6b7a;
+
+    --color-code-bg: #0f0a18;
+    --color-code-border: #3a2b50;
+    --color-code-text: #eadcff;
+
+    --color-shadow: rgb(0 0 0 / 0.28);
+    --color-shadow-strong: rgb(0 0 0 / 0.42);
+
+    color: var(--color-text);
+    background-color: var(--color-bg);
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --color-accent: #952dff;
+        --color-accent-hover: #8330e8;
+        --color-accent-active: #7026cc;
+        --color-accent-secondary: #5026cc;
+
+        --color-accent-soft: #f2e7ff;
+        --color-accent-muted: #e4d3ff;
+
+        --color-bg: #ffffff;
+        --color-bg-secondary: #f7f7fb;
+        --color-surface: #ffffff;
+        --color-surface-elevated: #ffffff;
+
+        --color-text: #14121a;
+        --color-text-secondary: #4b4658;
+        --color-text-muted: #7b748c;
+        --color-text-inverse: #ffffff;
+
+        --color-border: #e6e2ef;
+        --color-border-strong: #cec7dc;
+
+        --color-success: #17a36b;
+        --color-warning: #d98c00;
+        --color-error: #e5484d;
+
+        --color-code-bg: #f5f2fa;
+        --color-code-border: #ded6ec;
+        --color-code-text: #201933;
+
+        --color-shadow: rgb(31 19 51 / 0.08);
+        --color-shadow-strong: rgb(31 19 51 / 0.16);
+    }
+}
