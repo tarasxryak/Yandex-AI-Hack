@@ -1,0 +1,70 @@
+.workspaceButton:focus-visible {
+    outline: 2px solid var(--color-accent-hover);
+    outline-offset: 2px;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    overflow-y: auto;
+}
+
+.workspaceButton {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: var(--color-text-secondary);
+    text-align: left;
+    transition:
+        background-color 160ms ease,
+        color 160ms ease;
+}
+
+.workspaceButton:hover {
+    color: var(--color-text);
+    background: var(--color-surface);
+}
+
+.workspaceButton.active {
+    color: var(--color-text);
+    background: var(--color-accent-soft);
+}
+
+.workspaceName {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chatCount {
+    display: grid;
+    place-items: center;
+    min-width: 24px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 999px;
+    color: var(--color-text-muted);
+    background: var(--color-surface-elevated);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 0;
+    color: var(--color-text-muted);
+    font-size: 14px;
+}
