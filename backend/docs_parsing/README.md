@@ -53,7 +53,8 @@ curl -X POST http://localhost:8080/introspect \
 ```
 
 By default the service returns a compact preprocessed schema instead of raw
-GraphQL introspection JSON:
+GraphQL introspection JSON. It also includes SDL generated from that compact
+schema:
 
 ```json
 {
@@ -79,7 +80,8 @@ GraphQL introspection JSON:
         ]
       }
     ]
-  }
+  },
+  "sdl": "type Query {\n  user(id: ID!): User\n}\n..."
 }
 ```
 

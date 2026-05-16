@@ -127,6 +127,7 @@ type Result struct {
 	HTTPStatus    int             `json:"http_status,omitempty"`
 	Endpoint      string          `json:"endpoint,omitempty"`
 	Schema        *schema.Compact `json:"schema,omitempty"`
+	SDL           string          `json:"sdl,omitempty"`
 	Introspection json.RawMessage `json:"introspection,omitempty"`
 	Response      json.RawMessage `json:"response,omitempty"`
 	ResponseText  string          `json:"response_text,omitempty"`
@@ -253,6 +254,7 @@ func (c *Client) Fetch(ctx context.Context, endpoint string, opts Options) Resul
 			HTTPStatus: resp.StatusCode,
 			Endpoint:   endpoint,
 			Schema:     compact,
+			SDL:        schema.ToSDL(compact),
 		}
 		if opts.IncludeRaw {
 			result.Introspection = cloneRawMessage(data)
