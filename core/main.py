@@ -1,21 +1,66 @@
+import json
 import os
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import pandas as pd
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
 from graphql import build_client_schema, get_introspection_query, print_schema
+from markdown_pdf import MarkdownPdf, Section
 from openai import OpenAI
 
-OPENAI_TOKEN = "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"
-OPENAI_BASE_URL = "https://openrouter.ai/api/v1"
+OPENAI_TOKEN = "AQVNxtekqb7zxOvH82zgdIue11AZEZ-PJ2M1lRaB"
+OPENAI_BASE_URL = "https://ai.api.cloud.yandex.net/v1"
+OPENAI_PROJECT = "b1g0vs725b6umolm2eed"
+OPENAI_MODEL = "aliceai-llm"
 GQL_BASE_URL = "https://rickandmortyapi.com/graphql"
 
 # Промпт №1: Генерация GraphQL-запроса
-SYSTEM_PROMPT_TEMPLATE = """
-Тебе предоставлена схема GraphQL API. Твоя задача: используя схему, генерировать запросы по моим желаниям. Только запрос и ничего лишнего. Не добавляй Markdown формат для запроса (не пиши ```graphql).
+GQL_PROMPT_TEMPLATE = """
+Ты - API-интерфейс, преобразующий естественный язык в GraphQL-запросы.
+Твоя задача: генерировать только GraphQL-запросы на основе предоставленной схемы.
 
-ВСЯ СХЕМА ПРЕДСТАВЛЕНА НИЖЕ:
-{}
+СХЕМА:
+%SCHEMA%
+
+ПРАВИЛА ВЫВОДА:
+1. Выводи ТОЛЬКО валидный JSON-объект. Никаких Markdown (не используй ```json), никаких вводных слов, никаких пояснений вне JSON.
+2. Структура ответа должна быть строго следующей:
+{
+  "query": "GraphQL запрос здесь",
+  "note": "Краткое примечание или пустая строка",
+  "hints": ["Подсказка 1", "Подсказка 2", "Подсказка 3"]
+}
+3. В поле "query" пиши чистый GraphQL-код. Не пытайся вручную экранировать кавычки или переносы строк - просто пиши запрос, а формат JSON обеспечит валидность структуры.
+4. Если сформировать запрос невозможно, оставь поле "query" пустым, а в "note" опиши причину.
+5. Поле "hints" должно содержать 3 конкретных и полезных пользовательских промпта, основанных на доступных полях схемы, которые дополняют текущий запрос.
+
+Пример ожидаемого формата:
+{
+  "query": "query { users { id name } }",
+  "note": "",
+  "hints":["Получить email пользователя", "Отфильтровать пользователей по дате регистрации", "Включить список постов автора"]
+}
+"""
+
+
+REPORT_PROMPT_TEMPALTE = """Ты — аналитик данных. Твоя задача — составить строгий, профессиональный и информативный статистический отчет на основе полученных данных из API по запросу пользователя: "{user_input}"
+
+Сформируй отчет в формате Markdown (.md). Избегай маркетингового сленга и лишнего пафоса. Тон должен быть деловым, сфокусированным строго на фактах и статистических закономременностях.
+
+Структура отчета:
+все пункты максимально тезисно и читаемо для человека. ЭМОДЗИ И СМАЙЛИКИ ЗАПРЕЩЕНЫ.
+1. # Аналитический отчет по запросу: [Суть запроса]
+2. ##  Общая сводка и статистика (Объем выборки, структура данных, ключевые наблюдаемые параметры).
+3. ##  Таблица данных (Построй аккуратную Markdown-таблицу. Обязательно переведи технические названия полей из JSON на понятный русский язык, например: status -> Статус, species -> Раса/Вид, origin.name -> Родная планета).
+4. %CHART%
+
+Правила:
+- Не сокращай данные, даже если выборка кажется слишком большой. Итоговая таблица должна быть полной.
+- Верни ИСКЛЮЧИТЕЛЬНО Markdown-текст отчета. Не добавляй никаких фраз от себя до или после Markdown-блока.
+
+СЫРЫЕ ДАННЫЕ ИЗ API:
+%RAW%
 """
 
 transport = AIOHTTPTransport(url=GQL_BASE_URL)
@@ -90,29 +135,47 @@ try:
 
         # --- ШАГ 1: GraphQL Генерация ---
         response = client.chat.completions.create(
-            model="deepseek/deepseek-v4-flash:free",
+            model=f"gpt://{OPENAI_PROJECT}/{OPENAI_MODEL}",
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE.format(schema)},
+                {"role": "system", "content": GQL_PROMPT_TEMPLATE.replace("%SCHEMA%", schema, count=1)},
                 {"role": "user", "content": user_input},
             ],
             stream=False,
-            extra_body={"thinking": {"type": "enabled"}},
+            response_format={"type": "json_object"}
         )
 
         query = response.choices[0].message.content
         if query.startswith("```"):
             query = query.replace("```graphql", "").replace("```json", "").replace("```", "").strip()
 
-        print("\n[Сгенерированный GraphQL-запрос]:")
+        query_json = json.loads(query)
+
+        print("\n[Сгенерированный сырой GraphQL-запрос]:")
         print(query)
+
+        print("\nЗапрос:")
+        print(query_json["query"])
+
+        print("\nЗамечания:")
+        print(query_json["note"])
+
+        print("\nПодсказки:")
+        print(query_json["hints"])
+
+        if not query_json["query"]:
+            print("Запрос пустой, отчет не составляется.")
+            continue
 
         # --- ШАГ 2: Запрос к API ---
         print("\n🚀 Запрос к API...")
         try:
-            api_response = gql_client.execute(gql(query))
+            api_response = gql_client.execute(gql(query_json["query"]))
         except Exception as e:
             print(f"❌ Ошибка выполнения запроса: {e}\n")
             continue
+
+        print("Ответ от API:")
+        print(api_response)
 
         # --- ШАГ 3: Умная проверка надобности графика ---
         chart_created, chart_column = generate_auto_chart(api_response)
@@ -124,47 +187,26 @@ try:
             print("📉 В данных нет значимых распределений (все уникальны или одинаковы). График не требуется.")
             chart_instruction = "Никаких графиков строить не нужно, так как данные представляют собой последовательный список без группировочных метрик. Не добавляй блок визуализации."
 
-        # --- ШАГ 4: Динамическая сборка промпта через f-строку (без .format) ---
-        product_prompt = f"""Ты — аналитик данных. Твоя задача — составить строгий, профессиональный и информативный статистический отчет на основе полученных данных из API по запросу пользователя: "{user_input}"
+        # --- ШАГ 4: Динамическая сборка промпта ---
+        product_prompt = REPORT_PROMPT_TEMPALTE.replace("%CHART%", chart_instruction, 1).replace("%RAW%", str(api_response), 1)
 
-Сформируй отчет в формате Markdown (.md). Избегай маркетингового сленга и лишнего пафоса. Тон должен быть деловым, сфокусированным строго на фактах и статистических закономременностях.
-
-Структура отчета:
-все пункты максимально тезисно и читаемо для человека. ЭМОДЗИ И СМАЙЛИКИ ЗАПРЕЩЕНЫ.
-1. # Аналитический отчет по запросу: [Суть запроса]
-2. ##  Общая сводка и статистика (Объем выборки, структура данных, ключевые наблюдаемые параметры).
-3. ##  Таблица данных (Построй аккуратную Markdown-таблицу. Обязательно переведи технические названия полей из JSON на понятный русский язык, например: status -> Статус, species -> Раса/Вид, origin.name -> Родная планета).
-4. {chart_instruction}
-
-Верни ИСКЛЮЧИТЕЛЬНО Markdown-текст отчета. Не добавляй никаких фраз от себя до или после Markdown-блока. Эмодзи запрещены.
-
-СЫРЫЕ ДАННЫЕ ИЗ API:
-{str(api_response)}
-"""
-
-        print("🧠 Дипсик формирует аналитический отчет...")
+        print("🧠 Модель формирует аналитический отчет...")
 
         prod_response = client.chat.completions.create(
-            model="deepseek/deepseek-v4-flash:free",
+            model=f"gpt://{OPENAI_PROJECT}/{OPENAI_MODEL}",
             messages=[
                 {"role": "system", "content": product_prompt},
             ],
             stream=False,
-            extra_body={"thinking": {"type": "enabled"}},
         )
 
         md_report = prod_response.choices[0].message.content
 
-        print("\n✨ Сформированный отчет:")
-        print(md_report)
-        print()
+        pdf = MarkdownPdf()
+        pdf.add_section(Section(md_report))
+        pdf.save("product_report.pdf")
 
-        # --- ШАГ 5: Сохранение ---
-        report_filename = "product_report.md"
-        with open(report_filename, "w", encoding="utf-8") as f:
-            f.write(md_report)
-
-        print(f"💾 Отчет обновлен: {os.path.abspath(report_filename)}\n")
+        print(f"💾 Отчет обновлен: product_report.pdf\n")
 
 except KeyboardInterrupt:
     pass
