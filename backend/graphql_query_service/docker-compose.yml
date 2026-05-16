@@ -1,0 +1,71 @@
+services:
+  api:
+    build:
+      context: .
+    image: graphql-query-service:local
+    env_file:
+      - .env
+    environment:
+      PORT: "8080"
+      DOCS_PARSER_URL: http://docs-parser:8080
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ruchki}
+      MYSQL_USER: ${MYSQL_USER:-ruchki}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ruchki}
+    ports:
+      - "${API_BIND:-0.0.0.0}:${API_PORT:-8080}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      docs-parser:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz').read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  docs-parser:
+    build:
+      context: ../docs_parsing
+    image: docs-parser:local
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz').read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ruchki}
+      MYSQL_USER: ${MYSQL_USER:-ruchki}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ruchki}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  adminer:
+    image: adminer:4
+    profiles:
+      - tools
+    ports:
+      - "${ADMINER_BIND:-127.0.0.1}:${ADMINER_PORT:-8082}:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
