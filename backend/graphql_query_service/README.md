@@ -128,6 +128,10 @@ Username: ruchki
 Password: значение MYSQL_PASSWORD из .env
 ```
 
+Для подключения к MySQL из той же Docker-сети NocoDB запускается с
+`NC_ALLOW_LOCAL_EXTERNAL_DBS=true`. Без этого свежие версии NocoDB могут
+отклонять `mysql` с ошибкой `Forbidden host name or IP address`.
+
 На сервере Adminer и NocoDB по умолчанию слушают только `127.0.0.1`. Для доступа
 с локальной машины используй SSH tunnel:
 
