@@ -1,0 +1,63 @@
+# Binaries and build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.a
+*.o
+bin/
+build/
+dist/
+
+# Go test and coverage output
+coverage.out
+coverage.html
+*.coverprofile
+*.prof
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Dependency vendoring
+# Uncomment if vendor/ should stay local only.
+# vendor/
+
+# Environment and local config
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Temporary files and caches
+tmp/
+temp/
+.cache/
+
+# OS files
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Docker local overrides
+docker-compose.override.yml
+
+/docs
