@@ -6,6 +6,7 @@ from typing import Any
 
 import requests
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 from env_loader import load_dotenv
 from introspection_service import fetch_introspection
@@ -28,6 +29,7 @@ def create_app() -> Flask:
     load_dotenv()
 
     app = Flask(__name__)
+    configure_cors(app)
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
     init_db()
 
@@ -107,6 +109,28 @@ def create_app() -> Flask:
         )
 
     return app
+
+
+def configure_cors(app: Flask) -> None:
+    origins = parse_cors_origins(
+        os.getenv(
+            "FRONTEND_ORIGINS",
+            "https://yandex-ai-hack-zh9q.vercel.app,http://localhost:5173,http://127.0.0.1:5173",
+        )
+    )
+    CORS(
+        app,
+        resources={r"/*": {"origins": origins}},
+        methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
+    )
+
+
+def parse_cors_origins(value: str) -> list[str] | str:
+    origins = [origin.strip() for origin in value.split(",") if origin.strip()]
+    if "*" in origins:
+        return "*"
+    return origins
 
 
 def build_messages(schema: str, query: str) -> list[dict[str, str]]:
