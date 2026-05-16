@@ -1,0 +1,13 @@
+services:
+  docs-parser:
+    build:
+      context: .
+    image: docs-parser:local
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
