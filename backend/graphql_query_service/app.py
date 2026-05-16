@@ -7,6 +7,7 @@ from typing import Any
 import requests
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from werkzeug.exceptions import BadRequest
 
 from env_loader import load_dotenv
 from introspection_service import fetch_introspection
@@ -39,7 +40,10 @@ def create_app() -> Flask:
 
     @app.post("/create_workspace")
     def create_workspace_route():
-        payload: dict[str, Any] = request.get_json(silent=True) or {}
+        payload, error_response = parse_json_payload()
+        if error_response is not None:
+            return error_response
+
         chat_id = extract_chat_id(payload) or create_workspace_id()
         endpoint = str(
             payload.get("endpoint") or payload.get("url") or payload.get("graphql_endpoint") or ""
@@ -73,7 +77,10 @@ def create_app() -> Flask:
 
     @app.post("/query")
     def query_route():
-        payload: dict[str, Any] = request.get_json(silent=True) or {}
+        payload, error_response = parse_json_payload()
+        if error_response is not None:
+            return error_response
+
         chat_id = extract_chat_id(payload)
         query = str(payload.get("query") or "").strip()
         request_body = payload.get("request_body", payload.get("body"))
@@ -232,6 +239,22 @@ def extract_chat_id(payload: dict[str, Any]) -> str:
 
 def create_workspace_id() -> str:
     return uuid4().hex
+
+
+def parse_json_payload() -> tuple[dict[str, Any], Any]:
+    if not request.is_json:
+        return {}, (jsonify({"success": False, "error": "content-type must be application/json"}), 400)
+
+    try:
+        payload = request.get_json()
+    except BadRequest:
+        return {}, (jsonify({"success": False, "error": "invalid json body"}), 400)
+
+    if payload is None:
+        return {}, (jsonify({"success": False, "error": "json body is required"}), 400)
+    if not isinstance(payload, dict):
+        return {}, (jsonify({"success": False, "error": "json body must be an object"}), 400)
+    return payload, None
 
 
 app = create_app()
