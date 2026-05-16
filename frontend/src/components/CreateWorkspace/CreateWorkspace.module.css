@@ -77,12 +77,19 @@
 }
 
 .formError {
+    min-height: 40px;
     padding: 10px 12px;
     border: 1px solid rgb(255 107 122 / 0.35);
     border-radius: 8px;
     color: var(--color-error);
     background: rgb(255 107 122 / 0.08);
     font-size: 0.875rem;
+    opacity: 0;
+    transition: opacity 160ms ease;
+}
+
+.formError[data-visible='true'] {
+    opacity: 1;
 }
 
 .submitButton {

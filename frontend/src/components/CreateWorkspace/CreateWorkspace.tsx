@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { getApiUrl } from '../../config/api';
-import { useWorkspacesStore, type Workspace } from '../../stores/workspacesStore';
+import {
+    useWorkspacesStore,
+    type Workspace,
+} from '../../stores/workspacesStore';
 import styles from './CreateWorkspace.module.css';
 
 type CreateWorkspaceResponse = {
@@ -70,7 +73,8 @@ const CreateWorkspace = () => {
                 );
             }
 
-            const workspaceId = result.workspace?.chat_id || result.workspace?.id;
+            const workspaceId =
+                result.workspace?.chat_id || result.workspace?.id;
 
             if (!workspaceId) {
                 throw new Error('Backend не вернул id workspace');
@@ -103,24 +107,23 @@ const CreateWorkspace = () => {
                 <p className={styles.kicker}>GraphPilot</p>
                 <h1 className={styles.welcomeTitle}>Подключите GraphQL API</h1>
                 <p className={styles.welcomeText}>
-                    Вставьте endpoint, и GraphPilot создаст workspace для
+                    Вставьте endpoint, и GraphPilot создаст воркспейс для
                     будущих запросов.
                 </p>
 
                 <form
                     className={styles.createWorkspaceForm}
-                    onSubmit={handleCreateWorkspace}
-                >
+                    onSubmit={handleCreateWorkspace}>
                     <label className={styles.field}>
                         <span className={styles.fieldLabel}>
                             URL GraphQL API
                         </span>
                         <input
                             className={styles.input}
-                            type="url"
+                            type='url'
                             value={endpoint}
                             onChange={event => setEndpoint(event.target.value)}
-                            placeholder="https://api.example.com/graphql"
+                            placeholder='https://api.example.com/graphql'
                             required
                         />
                     </label>
@@ -129,22 +132,24 @@ const CreateWorkspace = () => {
                         <span className={styles.fieldLabel}>Token</span>
                         <input
                             className={styles.input}
-                            type="password"
+                            type='password'
                             value={token}
                             onChange={event => setToken(event.target.value)}
-                            placeholder="Опционально"
+                            placeholder='Опционально'
                         />
                     </label>
 
-                    {createError && (
-                        <p className={styles.formError}>{createError}</p>
-                    )}
+                    <p
+                        className={styles.formError}
+                        aria-live='polite'
+                        data-visible={Boolean(createError)}>
+                        {createError || ' '}
+                    </p>
 
                     <button
                         className={styles.submitButton}
-                        type="submit"
-                        disabled={isCreating}
-                    >
+                        type='submit'
+                        disabled={isCreating}>
                         {isCreating
                             ? 'Создаем workspace...'
                             : 'Создать workspace'}
