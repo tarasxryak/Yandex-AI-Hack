@@ -1,4 +1,4 @@
-package parser
+package models
 
 type Page struct {
 	URL         string    `json:"url"`

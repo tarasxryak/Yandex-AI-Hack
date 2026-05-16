@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"docs-parser/models"
+
 	"github.com/PuerkitoBio/goquery"
 )
 
@@ -25,7 +27,7 @@ func New() *Parser {
 	}
 }
 
-func (p *Parser) ParseURL(ctx context.Context, rawURL string) (*Page, error) {
+func (p *Parser) ParseURL(ctx context.Context, rawURL string) (*models.Page, error) {
 	if strings.TrimSpace(rawURL) == "" {
 		return nil, errors.New("url is required")
 	}
@@ -56,7 +58,7 @@ func (p *Parser) ParseURL(ctx context.Context, rawURL string) (*Page, error) {
 	return page, nil
 }
 
-func Parse(r io.Reader, pageURL string) (*Page, error) {
+func Parse(r io.Reader, pageURL string) (*models.Page, error) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		return nil, fmt.Errorf("parse html: %w", err)
@@ -64,7 +66,7 @@ func Parse(r io.Reader, pageURL string) (*Page, error) {
 
 	baseURL, _ := url.Parse(pageURL)
 
-	page := &Page{
+	page := &models.Page{
 		URL:         pageURL,
 		Title:       cleanText(doc.Find("title").First().Text()),
 		Description: cleanText(doc.Find(`meta[name="description"]`).First().AttrOr("content", "")),
@@ -81,7 +83,7 @@ func Parse(r io.Reader, pageURL string) (*Page, error) {
 			return
 		}
 
-		page.Headings = append(page.Headings, Heading{
+		page.Headings = append(page.Headings, models.Heading{
 			Level: headingLevel(goquery.NodeName(s)),
 			ID:    s.AttrOr("id", ""),
 			Text:  text,
@@ -94,7 +96,7 @@ func Parse(r io.Reader, pageURL string) (*Page, error) {
 			return
 		}
 
-		page.Blocks = append(page.Blocks, Block{
+		page.Blocks = append(page.Blocks, models.Block{
 			Type: blockType(goquery.NodeName(s)),
 			Text: text,
 		})
@@ -107,7 +109,7 @@ func Parse(r io.Reader, pageURL string) (*Page, error) {
 			return
 		}
 
-		page.Links = append(page.Links, Link{
+		page.Links = append(page.Links, models.Link{
 			Text: text,
 			Href: resolveURL(baseURL, href),
 		})
