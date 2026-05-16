@@ -1,23 +1,28 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-export type WorkspaceChat = {
+export type WorkspaceRequest = {
     id: string;
-    title: string;
+    time: string;
+    message: string;
 };
 
 export type Workspace = {
     id: string;
     title: string;
     base_url: string;
-    chats: WorkspaceChat[];
+    requests: WorkspaceRequest[];
 };
 
 type WorkspacesState = {
     workspaces: Workspace[];
     activeWorkspaceId: string | null;
+    activeRequestId: string | null;
     addWorkspace: (title: string) => void;
-    setActiveWorkspaceId: (workspaceId: string) => void;
+    addRequest: (workspaceId: string, request: WorkspaceRequest) => void;
+    saveWorkspace: (workspace: Workspace) => void;
+    setActiveWorkspaceId: (workspaceId: string | null) => void;
+    setActiveRequestId: (workspaceId: string) => void;
 };
 
 const createWorkspaceId = () => crypto.randomUUID();
@@ -27,20 +32,57 @@ export const useWorkspacesStore = create<WorkspacesState>()(
         set => ({
             workspaces: [],
             activeWorkspaceId: null,
+            activeRequestId: null,
             addWorkspace: title => {
-                const workspace = {
+                const workspace: Workspace = {
                     id: createWorkspaceId(),
                     title,
-                    chats: [],
+                    base_url: '',
+                    requests: [],
                 };
 
-                set(state => ({
+                set((state: WorkspacesState) => ({
                     workspaces: [...state.workspaces, workspace],
                     activeWorkspaceId: workspace.id,
                 }));
             },
+            addRequest: (workspaceId, request) => {
+                set((state: WorkspacesState) => ({
+                    workspaces: state.workspaces.map(workspace =>
+                        workspace.id === workspaceId
+                            ? {
+                                  ...workspace,
+                                  requests: [
+                                      ...(workspace.requests ?? []),
+                                      request,
+                                  ],
+                              }
+                            : workspace,
+                    ),
+                    activeRequestId: request.id,
+                }));
+            },
+            saveWorkspace: workspace => {
+                set((state: WorkspacesState) => {
+                    const workspaces = state.workspaces.some(
+                        item => item.id === workspace.id,
+                    )
+                        ? state.workspaces.map(item =>
+                              item.id === workspace.id ? workspace : item,
+                          )
+                        : [...state.workspaces, workspace];
+
+                    return {
+                        workspaces,
+                        activeWorkspaceId: workspace.id,
+                    };
+                });
+            },
             setActiveWorkspaceId: workspaceId => {
                 set({ activeWorkspaceId: workspaceId });
+            },
+            setActiveRequestId: requestId => {
+                set({ activeRequestId: requestId });
             },
         }),
         {

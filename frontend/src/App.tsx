@@ -1,10 +1,22 @@
+import CreateWorkspace from './components/CreateWorkspace/CreateWorkspace'
+import MessageComposer from './components/MessageComposer/MessageComposer'
 import WorkspacesList from './components/WorkspacesList/WorkspacesList'
 import logo from './assets/favicon.png'
 import RequestsList from './components/RequestList/RequestsList'
+import { useWorkspacesStore } from './stores/workspacesStore'
 import styles from './styles/App.module.css'
 
 function App() {
-    const handleAddWorkspace = () => undefined
+    const activeWorkspaceId = useWorkspacesStore(
+        (state) => state.activeWorkspaceId,
+    )
+    const setActiveWorkspaceId = useWorkspacesStore(
+        (state) => state.setActiveWorkspaceId,
+    )
+
+    const handleAddWorkspace = () => {
+        setActiveWorkspaceId(null)
+    }
 
     return (
         <div className={styles.appShell}>
@@ -36,7 +48,14 @@ function App() {
                 className={`${styles.panel} ${styles.mainPanel}`}
                 aria-label="Workspace content"
             >
-                <RequestsList />
+                {activeWorkspaceId ? (
+                    <div className={styles.workspaceContent}>
+                        <RequestsList />
+                        <MessageComposer />
+                    </div>
+                ) : (
+                    <CreateWorkspace />
+                )}
             </main>
 
             <aside

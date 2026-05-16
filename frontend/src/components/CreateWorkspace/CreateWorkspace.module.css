@@ -1,0 +1,133 @@
+.welcome {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    padding: 48px 32px;
+}
+
+.welcomeContent {
+    width: min(100%, 560px);
+    padding-bottom: 10%;
+}
+
+.kicker {
+    margin-bottom: 10px;
+    color: var(--color-accent-hover);
+    font-family: var(--font-wide);
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.welcomeTitle {
+    color: var(--color-text);
+    font-family: var(--font-display);
+    font-size: 40px;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.welcomeText {
+    max-width: 440px;
+    margin-top: 14px;
+    color: var(--color-text-secondary);
+    font-size: 1rem;
+}
+
+.createWorkspaceForm {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 32px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fieldLabel {
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.input {
+    width: 100%;
+    min-height: 46px;
+    padding: 11px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    color: var(--color-text);
+    background: var(--color-surface);
+    transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease;
+}
+
+.input::placeholder {
+    color: var(--color-text-muted);
+}
+
+.input:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgb(149 45 255 / 0.18);
+    outline: none;
+}
+
+.formError {
+    padding: 10px 12px;
+    border: 1px solid rgb(255 107 122 / 0.35);
+    border-radius: 8px;
+    color: var(--color-error);
+    background: rgb(255 107 122 / 0.08);
+    font-size: 0.875rem;
+}
+
+.submitButton {
+    min-height: 48px;
+    padding: 12px 18px;
+    border-radius: 8px;
+    color: var(--color-text-inverse);
+    background: linear-gradient(
+        135deg,
+        var(--color-accent),
+        var(--color-accent-secondary)
+    );
+    font-size: 0.875rem;
+    font-weight: 800;
+    transition:
+        filter 160ms ease,
+        transform 160ms ease,
+        opacity 160ms ease;
+}
+
+.submitButton:hover:not(:disabled) {
+    filter: brightness(1.08);
+}
+
+.submitButton:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.submitButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
+}
+
+.submitButton:focus-visible {
+    outline: 2px solid var(--color-accent-hover);
+    outline-offset: 2px;
+}
+
+@media (max-width: 960px) {
+    .welcome {
+        min-height: 520px;
+        padding: 36px 20px;
+    }
+
+    .welcomeTitle {
+        font-size: 2rem;
+    }
+}

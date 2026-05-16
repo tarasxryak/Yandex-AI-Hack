@@ -51,6 +51,7 @@
     min-width: 0;
     overflow: hidden;
     color: var(--color-text);
+    font-family: var(--font-wide);
     font-size: 18px;
     font-weight: 800;
     text-overflow: ellipsis;
@@ -89,10 +90,17 @@
     height: 100%;
     border-right: 1px solid var(--color-border);
     background: var(--color-bg);
+    overflow: hidden;
 }
 
 .rightPanel {
     background: var(--color-bg-secondary);
+}
+
+.workspaceContent {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 @media (max-width: 960px) {

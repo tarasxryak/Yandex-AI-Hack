@@ -1,11 +1,51 @@
+@font-face {
+    font-family: 'YSText';
+    src: url('../assets/YSText-Regular-Web.20940a66.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'YSText';
+    src: url('../assets/YSText-Bold-Web.49f8767e.woff2') format('woff2');
+    font-weight: 700 800;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'YSDisplay';
+    src: url('../assets/YSDisplay-Medium.dbb0904a.woff2') format('woff2');
+    font-weight: 500 800;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'YSTextCond';
+    src: url('../assets/YSTextCond-Heavy.5ebdf08d.woff2') format('woff2');
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'YSTextWide';
+    src: url('../assets/YSTextWide-Heavy.52217f6d.woff2') format('woff2');
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
-    font-family:
-        Inter,
-        system-ui,
-        -apple-system,
-        BlinkMacSystemFont,
-        'Segoe UI',
-        sans-serif;
+    --font-text: 'YSText', system-ui, -apple-system, BlinkMacSystemFont,
+        'Segoe UI', sans-serif;
+    --font-display: 'YSDisplay', 'YSText', system-ui, sans-serif;
+    --font-cond: 'YSTextCond', 'YSText', system-ui, sans-serif;
+    --font-wide: 'YSTextWide', 'YSText', system-ui, sans-serif;
+
+    font-family: var(--font-text);
     line-height: 1.5;
     font-weight: 400;
 

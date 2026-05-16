@@ -1,17 +1,19 @@
 import styles from "./RequestCard.module.css"
+import clsx from "clsx"
 
 type RequestCardProps = {
     request : string,
-    time : string
+    time : string,
+    isActive: boolean,
 }
 
-const RequestCard = ({request, time } : RequestCardProps) => {
+const RequestCard = ({request, time, isActive } : RequestCardProps) => {
     return (
         <>
             <div className={styles.timeWrapper}>
                 <span className={styles.timeString}>{time}</span>
             </div>
-            <button className={styles.requestField}>{request}</button>
+            <button className={clsx(styles.requestField, isActive && styles.activeField)}>{request}</button>
         </>
     )
 }
