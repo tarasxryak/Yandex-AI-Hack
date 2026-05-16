@@ -10,6 +10,9 @@ const RequestsList = () => {
             )?.requests,
     );
     const activeRequestId = useWorkspacesStore(state => state.activeRequestId);
+    const setActiveRequestId = useWorkspacesStore(
+        state => state.setActiveRequestId,
+    );
 
     return (
         <div className={styles.requestsList}>
@@ -19,6 +22,7 @@ const RequestsList = () => {
                     request={request.message}
                     time={request.time}
                     isActive={request.id == activeRequestId}
+                    onClick={() => setActiveRequestId(request.id)}
                 />
             ))}
         </div>

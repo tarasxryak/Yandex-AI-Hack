@@ -47,7 +47,6 @@ const CreateWorkspace = () => {
             return;
         }
 
-        const chatId = crypto.randomUUID();
         setIsCreating(true);
 
         try {
@@ -57,7 +56,6 @@ const CreateWorkspace = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    chat_id: chatId,
                     endpoint: trimmedEndpoint,
                     token: trimmedToken,
                 }),

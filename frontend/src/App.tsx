@@ -1,5 +1,6 @@
 import CreateWorkspace from './components/CreateWorkspace/CreateWorkspace'
 import MessageComposer from './components/MessageComposer/MessageComposer'
+import RequestDetails from './components/RequestDetails/RequestDetails'
 import WorkspacesList from './components/WorkspacesList/WorkspacesList'
 import logo from './assets/favicon.png'
 import RequestsList from './components/RequestList/RequestsList'
@@ -61,7 +62,9 @@ function App() {
             <aside
                 className={`${styles.panel} ${styles.rightPanel}`}
                 aria-label="Details"
-            />
+            >
+                <RequestDetails />
+            </aside>
         </div>
     )
 }

@@ -5,15 +5,22 @@ type RequestCardProps = {
     request : string,
     time : string,
     isActive: boolean,
+    onClick: () => void,
 }
 
-const RequestCard = ({request, time, isActive } : RequestCardProps) => {
+const RequestCard = ({request, time, isActive, onClick } : RequestCardProps) => {
     return (
         <>
             <div className={styles.timeWrapper}>
                 <span className={styles.timeString}>{time}</span>
             </div>
-            <button className={clsx(styles.requestField, isActive && styles.activeField)}>{request}</button>
+            <button
+                className={clsx(styles.requestField, isActive && styles.activeField)}
+                type="button"
+                onClick={onClick}
+            >
+                {request}
+            </button>
         </>
     )
 }
