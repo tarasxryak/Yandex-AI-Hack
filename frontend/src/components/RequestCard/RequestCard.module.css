@@ -1,0 +1,29 @@
+.timeWrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2px;
+    width: 100%;
+}
+
+.timeWrapper::before,
+.timeWrapper::after {
+    content: '';
+    display: block;
+    height: 1px;
+    border-radius: 2px;
+    flex-grow: 1;
+    background-color: var(--color-text-secondary);
+}
+
+.timeString {
+    color: var(--color-text-secondary);
+}
+
+.requestField {
+    padding: 20px 28px;
+    text-align: left;
+    background-color: var(--color-bg-secondary);
+    border-radius: 8px;
+    width: 100%;
+}
