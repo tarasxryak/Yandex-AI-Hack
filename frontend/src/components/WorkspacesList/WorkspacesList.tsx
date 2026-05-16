@@ -40,7 +40,7 @@ const WorkspacesList = () => {
                 </ul>
             ) : (
                 <div className={styles.emptyState}>
-                    <p>No workspaces yet</p>
+                    <p>Пока нет рабочих пространств</p>
                 </div>
             )}
         </>

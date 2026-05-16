@@ -8,10 +8,8 @@ import styles from './CreateWorkspace.module.css';
 
 type CreateWorkspaceResponse = {
     success: boolean;
-    workspace?: {
-        chat_id?: string;
-        id?: string;
-    };
+    id?: string;
+    chat_id?: string;
     error?: string;
     introspection?: {
         message?: string;
@@ -71,8 +69,7 @@ const CreateWorkspace = () => {
                 );
             }
 
-            const workspaceId =
-                result.workspace?.chat_id || result.workspace?.id;
+            const workspaceId = result.id || result.chat_id;
 
             if (!workspaceId) {
                 throw new Error('Backend не вернул id workspace');

@@ -12,7 +12,6 @@ type GeneratedGraphqlRequest = {
 type QueryResponse = {
     success: boolean;
     error?: string;
-    answer?: string;
     graphql?: GeneratedGraphqlRequest | null;
 };
 
@@ -21,24 +20,6 @@ const getRequestTime = () =>
         hour: '2-digit',
         minute: '2-digit',
     }).format(new Date());
-
-const parseAnswer = (answer: string | undefined): GeneratedGraphqlRequest => {
-    if (!answer) {
-        return {};
-    }
-
-    try {
-        const parsed = JSON.parse(answer) as unknown;
-        return isGeneratedGraphqlRequest(parsed) ? parsed : {};
-    } catch {
-        return {};
-    }
-};
-
-const isGeneratedGraphqlRequest = (
-    value: unknown,
-): value is GeneratedGraphqlRequest =>
-    typeof value === 'object' && value !== null && 'query' in value;
 
 const normalizeHints = (hints: unknown) =>
     Array.isArray(hints)
@@ -84,7 +65,11 @@ const MessageComposer = () => {
                 throw new Error(result.error || 'Не удалось отправить запрос');
             }
 
-            const generatedRequest = result.graphql ?? parseAnswer(result.answer);
+            const generatedRequest = result.graphql;
+
+            if (!generatedRequest) {
+                throw new Error('Backend не вернул GraphQL результат');
+            }
 
             addRequest(activeWorkspaceId, {
                 id: crypto.randomUUID(),
