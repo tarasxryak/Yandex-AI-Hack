@@ -71,6 +71,8 @@ services:
     image: nocodb/nocodb:latest
     profiles:
       - tools
+    environment:
+      NC_ALLOW_LOCAL_EXTERNAL_DBS: "true"
     ports:
       - "${NOCODB_BIND:-127.0.0.1}:${NOCODB_PORT:-8083}:8080"
     volumes:
