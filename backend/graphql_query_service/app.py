@@ -1,11 +1,14 @@
 import json
 import logging
 import os
+import re
+import shutil
+from pathlib import Path
 from uuid import uuid4
 from typing import Any
 
 import requests
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from werkzeug.exceptions import BadRequest
 
@@ -20,23 +23,42 @@ SYSTEM_PROMPT = (
     "составляй корректный GraphQL operation для API из workspace. Учитывай контекст "
     "workspace: схему, доступные query/mutation, типы, поля и ограничения. "
     "Возвращай только JSON без markdown, без ``` и без поясняющего текста: "
-    '{"query":"<GraphQL operation>","variables":{...},"operationName":"<name or null>"}. '
-    "Если данных недостаточно или нужного поля нет в схеме, верни JSON с ключом error и "
-    "коротким explanation."
+    '{"query":"<GraphQL operation or empty string>","variables":{...},'
+    '"operationName":"<name or null>","note":"<short note or empty string>",'
+    '"hints":["<related useful request in Russian>",'
+    '"<another related useful request in Russian>",'
+    '"<another related useful request in Russian>"]}. '
+    "Поле note заполняй только если запрос удалось выполнить не полностью, есть "
+    "неоднозначность, не хватает данных, поле отсутствует в схеме или нужен комментарий "
+    "для клиента; если всё получилось, note должен быть пустой строкой. "
+    "Поле hints всегда возвращай массивом из 2-3 коротких подсказок на русском: что ещё "
+    "пользователь может запросить по этой схеме. "
+    "Не используй GraphQL variables в query. Подставляй значения из тела request или "
+    "текста пользователя прямо в GraphQL operation: name: \"Rick\", id: \"1\", page: 2. "
+    "Поле variables всегда возвращай пустым объектом {}. "
+    "Если значения для аргумента нет, верни пустой query и причину в note. "
+    "Если невозможно составить GraphQL operation, верни query пустой строкой, variables "
+    "пустым объектом, operationName null, note с причиной и hints с вариантами исправления."
 )
 
 
 def create_app() -> Flask:
     load_dotenv()
 
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder=None)
     configure_cors(app)
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
     init_db()
+    reports_dir().mkdir(parents=True, exist_ok=True)
 
     @app.get("/healthz")
     def healthz():
         return jsonify({"status": "ok"})
+
+    @app.get("/static/<path:filename>")
+    def static_file(filename: str):
+        ensure_report_file(filename)
+        return send_from_directory(reports_dir(), filename)
 
     @app.post("/create_workspace")
     def create_workspace_route():
@@ -103,15 +125,17 @@ def create_app() -> Flask:
             app.logger.warning("query failed chat_id=%s error=%s", chat_id, exc)
             return jsonify({"success": False, "error": str(exc)}), 502
 
-        graphql = parse_graphql_answer(result["answer"])
+        graphql = normalize_graphql_answer(
+            parse_graphql_answer(result["answer"]),
+            request_body=request_body,
+        )
+        graphql["report_json"] = publish_report(chat_id)
+        graphql.pop("variables", None)
         return jsonify(
             {
                 "success": True,
-                "id": chat_id,
                 "chat_id": chat_id,
-                "answer": result["answer"],
                 "graphql": graphql,
-                "raw": result["raw"],
             }
         )
 
@@ -177,6 +201,181 @@ def parse_graphql_answer(answer: str) -> dict[str, Any] | None:
     if not isinstance(parsed, dict):
         return None
     return parsed
+
+
+def normalize_graphql_answer(
+    parsed: dict[str, Any] | None,
+    request_body: Any = None,
+) -> dict[str, Any]:
+    if parsed is None:
+        return {
+            "query": "",
+            "variables": {},
+            "operationName": None,
+            "note": "Модель вернула ответ не в JSON-формате.",
+            "hints": [],
+            "report_json": None,
+        }
+
+    query = parsed.get("query")
+    variables = parsed.get("variables")
+    operation_name = parsed.get("operationName")
+    note = parsed.get("note")
+    hints = parsed.get("hints")
+
+    normalized_hints = [str(hint).strip() for hint in hints if str(hint).strip()] if isinstance(hints, list) else []
+
+    normalized = {
+        "query": str(query or ""),
+        "variables": variables if isinstance(variables, dict) else {},
+        "operationName": operation_name if operation_name is None else str(operation_name),
+        "note": str(note or ""),
+        "hints": normalized_hints,
+        "report_json": None,
+    }
+    complete_graphql_variables(normalized, request_body)
+    inline_graphql_variables(normalized)
+    return normalized
+
+
+def complete_graphql_variables(graphql: dict[str, Any], request_body: Any) -> None:
+    query = str(graphql.get("query") or "")
+    variables = graphql.get("variables")
+    if not query or not isinstance(variables, dict):
+        return
+
+    declared_variables = declared_graphql_variables(query)
+    if not declared_variables:
+        return
+
+    if isinstance(request_body, dict):
+        for variable_name in declared_variables:
+            if variable_name not in variables and variable_name in request_body:
+                variables[variable_name] = request_body[variable_name]
+
+    missing_variables = [name for name in declared_variables if name not in variables]
+    if missing_variables:
+        note = str(graphql.get("note") or "").strip()
+        missing_text = ", ".join(f"${name}" for name in missing_variables)
+        auto_note = f"Не хватает значений для GraphQL variables: {missing_text}."
+        graphql["note"] = f"{note} {auto_note}".strip()
+
+
+def declared_graphql_variables(query: str) -> list[str]:
+    return list(dict.fromkeys(re.findall(r"\$([A-Za-z_][A-Za-z0-9_]*)\s*:", query)))
+
+
+def inline_graphql_variables(graphql: dict[str, Any]) -> None:
+    query = str(graphql.get("query") or "")
+    variables = graphql.get("variables")
+    if not query or not isinstance(variables, dict):
+        return
+
+    declared_variables = declared_graphql_variables(query)
+    if not declared_variables:
+        graphql["variables"] = {}
+        return
+
+    missing_variables = [name for name in declared_variables if name not in variables]
+    if missing_variables:
+        note = str(graphql.get("note") or "").strip()
+        missing_text = ", ".join(f"${name}" for name in missing_variables)
+        auto_note = f"Нельзя подставить значения в GraphQL query: не хватает {missing_text}."
+        graphql["query"] = ""
+        graphql["variables"] = {}
+        graphql["note"] = f"{note} {auto_note}".strip()
+        return
+
+    inlined_query = query
+    for variable_name in declared_variables:
+        inlined_query = re.sub(
+            rf"\${re.escape(variable_name)}\b",
+            graphql_literal(variables[variable_name]),
+            inlined_query,
+        )
+
+    inlined_query = re.sub(
+        r"\b(query|mutation|subscription)(\s+[A-Za-z_][A-Za-z0-9_]*)?\s*\([^)]*\)",
+        lambda match: f"{match.group(1)}{match.group(2) or ''}",
+        inlined_query,
+        count=1,
+    )
+
+    graphql["query"] = inlined_query
+    graphql["variables"] = {}
+
+
+def graphql_literal(value: Any) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return str(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(graphql_literal(item) for item in value) + "]"
+    if isinstance(value, dict):
+        fields = [f"{key}: {graphql_literal(item)}" for key, item in value.items()]
+        return "{" + ", ".join(fields) + "}"
+    return json.dumps(str(value), ensure_ascii=False)
+
+
+def publish_report(chat_id: str) -> str | None:
+    source_path = report_source_path()
+    filename = f"{safe_report_id(chat_id)}.pdf"
+    if source_path is None:
+        return None
+
+    if not copy_report(source_path, filename):
+        return None
+    return f"{request.host_url.rstrip('/')}/static/{filename}"
+
+
+def ensure_report_file(filename: str) -> None:
+    target_path = reports_dir() / filename
+    if target_path.is_file() or "/" in filename or not filename.endswith(".pdf"):
+        return
+
+    source_path = report_source_path()
+    if source_path is not None:
+        copy_report(source_path, filename)
+
+
+def copy_report(source_path: Path, filename: str) -> bool:
+    target_path = reports_dir() / filename
+    try:
+        shutil.copyfile(source_path, target_path)
+    except OSError:
+        return False
+    return True
+
+
+def report_source_path() -> Path | None:
+    configured = os.getenv("REPORT_SOURCE_PATH", "").strip()
+    candidates = [configured] if configured else []
+    candidates.extend(
+        [
+            "/app/core/product_report.pdf",
+            "../../core/product_report.pdf",
+            "../core/product_report.pdf",
+            "product_report.pdf",
+        ]
+    )
+
+    for candidate in candidates:
+        path = Path(candidate)
+        if path.is_file():
+            return path
+    return None
+
+
+def reports_dir() -> Path:
+    return Path(os.getenv("REPORTS_DIR", "static"))
+
+
+def safe_report_id(value: str) -> str:
+    safe = re.sub(r"[^a-zA-Z0-9_.-]+", "-", value).strip(".-")
+    return safe or uuid4().hex
 
 
 def run_introspection(
