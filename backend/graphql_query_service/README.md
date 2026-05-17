@@ -334,9 +334,10 @@ API не отдаёт GraphQL variables фронту. Если модель сг
 Если значение для объявленной переменной не найдено, `graphql.query` будет пустой,
 а причина будет добавлена в `graphql.note`.
 
-PDF берётся из `REPORT_SOURCE_PATH` (`/app/core/product_report.pdf` в Docker) и
-публикуется как `/static/<chat_id>.pdf`. Если файл отчёта ещё не создан, API
-вернёт `"report_link": null`.
+После генерации GraphQL operation API выполняет этот query в endpoint workspace,
+формирует PDF-отчёт и публикует его как `/static/<chat_id>.pdf`. Если отчёт
+создать не получилось, API вернёт `"report_link": null`, а причина будет
+добавлена в `graphql.note`.
 
 Если модель не смогла собрать запрос, `graphql.query` будет пустой строкой, а
 причина будет в `graphql.note`:

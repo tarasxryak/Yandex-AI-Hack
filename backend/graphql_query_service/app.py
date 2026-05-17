@@ -14,7 +14,7 @@ from werkzeug.exceptions import BadRequest
 
 from env_loader import load_dotenv
 from introspection_service import fetch_introspection
-from storage import get_schema, init_db, save_schema
+from storage import get_workspace, init_db, save_workspace
 from yandex_client import YandexClientError, ask_yandex
 
 
@@ -39,6 +39,13 @@ SYSTEM_PROMPT = (
     "Если значения для аргумента нет, верни пустой query и причину в note. "
     "Если невозможно составить GraphQL operation, верни query пустой строкой, variables "
     "пустым объектом, operationName null, note с причиной и hints с вариантами исправления."
+)
+
+REPORT_PROMPT = (
+    "Ты аналитик данных. Составь строгий, профессиональный и информативный "
+    "аналитический отчёт на русском языке в Markdown. Без emoji, без markdown-code fences, "
+    "без вводных фраз. Структура: заголовок, краткая сводка, ключевые наблюдения, "
+    "таблица или список данных, вывод. Не выдумывай данные, используй только RAW DATA."
 )
 
 
@@ -85,7 +92,13 @@ def create_app() -> Flask:
             return jsonify({"success": False, "introspection": introspection}), http_status
 
         schema = str(introspection.get("sdl") or "")
-        save_schema(chat_id=chat_id, schema=schema)
+        save_workspace(
+            chat_id=chat_id,
+            schema=schema,
+            endpoint=endpoint,
+            headers=headers,
+            token=token,
+        )
         return jsonify(
             {
                 "success": True,
@@ -112,10 +125,11 @@ def create_app() -> Flask:
         if not query and request_body is None:
             return jsonify({"success": False, "error": "query or request_body is required"}), 400
 
-        schema = get_schema(chat_id)
-        if schema is None:
+        workspace = get_workspace(chat_id)
+        if workspace is None:
             return jsonify({"success": False, "error": "schema not found for chat_id"}), 404
 
+        schema = str(workspace["schema"])
         user_prompt = build_user_prompt(query=query, request_body=request_body)
         messages = build_messages(schema, user_prompt)
 
@@ -129,7 +143,12 @@ def create_app() -> Flask:
             parse_graphql_answer(result["answer"]),
             request_body=request_body,
         )
-        graphql["report_link"] = publish_report(chat_id)
+        graphql["report_link"] = build_report_link(
+            chat_id=chat_id,
+            user_query=query,
+            graphql=graphql,
+            workspace=workspace,
+        )
         graphql.pop("variables", None)
         return jsonify(
             {
@@ -320,15 +339,159 @@ def graphql_literal(value: Any) -> str:
     return json.dumps(str(value), ensure_ascii=False)
 
 
-def publish_report(chat_id: str) -> str | None:
-    source_path = report_source_path()
+def build_report_link(
+    chat_id: str,
+    user_query: str,
+    graphql: dict[str, Any],
+    workspace: dict[str, Any],
+) -> str | None:
     filename = f"{safe_report_id(chat_id)}.pdf"
-    if source_path is None:
+    graphql_query = str(graphql.get("query") or "").strip()
+    endpoint = str(workspace.get("endpoint") or "").strip()
+    if not graphql_query or not endpoint:
         return None
 
-    if not copy_report(source_path, filename):
+    try:
+        api_response = execute_graphql(
+            endpoint=endpoint,
+            query=graphql_query,
+            headers=workspace.get("headers") if isinstance(workspace.get("headers"), dict) else {},
+            token=str(workspace.get("token") or ""),
+        )
+        markdown = generate_report_markdown(
+            user_query=user_query,
+            graphql_query=graphql_query,
+            api_response=api_response,
+        )
+        write_report_pdf(markdown=markdown, filename=filename)
+    except Exception as exc:
+        note = str(graphql.get("note") or "").strip()
+        report_note = f"Отчёт не создан: {exc}"
+        graphql["note"] = f"{note} {report_note}".strip()
         return None
+
     return f"{request.host_url.rstrip('/')}/static/{filename}"
+
+
+def execute_graphql(
+    endpoint: str,
+    query: str,
+    headers: dict[str, str] | None = None,
+    token: str = "",
+) -> dict[str, Any]:
+    request_headers = {"Content-Type": "application/json"}
+    if headers:
+        request_headers.update(headers)
+    if token and "Authorization" not in request_headers:
+        request_headers["Authorization"] = f"Bearer {token}"
+
+    response = requests.post(
+        endpoint,
+        json={"query": query},
+        headers=request_headers,
+        timeout=float(os.getenv("REPORT_GRAPHQL_TIMEOUT_SECONDS", "30")),
+    )
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise RuntimeError(f"GraphQL endpoint returned non-json response ({response.status_code})") from exc
+
+    if response.status_code < 200 or response.status_code >= 300:
+        raise RuntimeError(f"GraphQL endpoint returned status {response.status_code}")
+    if isinstance(payload, dict) and payload.get("errors"):
+        raise RuntimeError(f"GraphQL endpoint returned errors: {payload['errors']}")
+    if not isinstance(payload, dict):
+        raise RuntimeError("GraphQL endpoint returned unexpected payload")
+
+    return payload
+
+
+def generate_report_markdown(
+    user_query: str,
+    graphql_query: str,
+    api_response: dict[str, Any],
+) -> str:
+    raw_data = json.dumps(api_response, ensure_ascii=False, indent=2)
+    prompt = (
+        f"Запрос пользователя:\n{user_query}\n\n"
+        f"GraphQL query:\n{graphql_query}\n\n"
+        f"RAW DATA:\n{raw_data}"
+    )
+
+    try:
+        result = ask_yandex(
+            [
+                {"role": "system", "text": REPORT_PROMPT},
+                {"role": "user", "text": prompt},
+            ]
+        )
+    except YandexClientError as exc:
+        raise RuntimeError(f"report model request failed: {exc}") from exc
+
+    markdown = str(result["answer"]).strip()
+    if not markdown:
+        raise RuntimeError("report model returned empty response")
+    return markdown
+
+
+def write_report_pdf(markdown: str, filename: str) -> None:
+    path = reports_dir() / filename
+    try:
+        from markdown_pdf import MarkdownPdf, Section
+
+        pdf = MarkdownPdf()
+        pdf.add_section(Section(markdown))
+        pdf.save(str(path))
+        return
+    except Exception:
+        write_basic_pdf(markdown, path)
+
+
+def write_basic_pdf(text: str, path: Path) -> None:
+    # Fallback PDF writer for environments where markdown-pdf is unavailable.
+    safe_text = text.encode("latin-1", errors="replace").decode("latin-1")
+    lines = []
+    for raw_line in safe_text.splitlines() or ["Report"]:
+        line = raw_line[:100]
+        lines.append(line)
+
+    content_lines = ["BT", "/F1 10 Tf", "50 790 Td", "14 TL"]
+    for line in lines[:52]:
+        escaped = line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+        content_lines.append(f"({escaped}) Tj")
+        content_lines.append("T*")
+    content_lines.append("ET")
+    content = "\n".join(content_lines).encode("latin-1", errors="replace")
+
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Length " + str(len(content)).encode("ascii") + b" >>\nstream\n" + content + b"\nendstream",
+    ]
+
+    data = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for index, obj in enumerate(objects, start=1):
+        offsets.append(len(data))
+        data.extend(f"{index} 0 obj\n".encode("ascii"))
+        data.extend(obj)
+        data.extend(b"\nendobj\n")
+
+    xref_offset = len(data)
+    data.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
+    data.extend(b"0000000000 65535 f \n")
+    for offset in offsets:
+        data.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    data.extend(
+        (
+            f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
+            f"startxref\n{xref_offset}\n%%EOF\n"
+        ).encode("ascii")
+    )
+    path.write_bytes(data)
 
 
 def ensure_report_file(filename: str) -> None:

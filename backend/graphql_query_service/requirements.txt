@@ -5,3 +5,4 @@ graphql-core==3.2.6
 gunicorn==23.0.0
 PyMySQL==1.1.1
 requests==2.32.3
+markdown-pdf
