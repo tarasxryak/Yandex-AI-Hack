@@ -8,7 +8,7 @@ export type WorkspaceRequest = {
     query: unknown;
     note: string;
     hints: string[];
-    reportLink: string;
+    report_link: string | null;
 };
 
 export type Workspace = {

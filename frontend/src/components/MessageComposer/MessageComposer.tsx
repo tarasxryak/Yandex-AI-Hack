@@ -30,6 +30,16 @@ const normalizeHints = (hints: unknown) =>
         ? hints.filter((hint): hint is string => typeof hint === 'string')
         : [];
 
+const normalizeReportLink = (reportLink: unknown) => {
+    if (typeof reportLink !== 'string') {
+        return null;
+    }
+
+    const trimmedReportLink = reportLink.trim();
+
+    return trimmedReportLink || null;
+};
+
 const DEFAULT_INPUT_HEIGHT = 38;
 const COMPACT_INPUT_HEIGHT = 58;
 const COMPACT_INPUT_WIDTH = 365;
@@ -131,10 +141,7 @@ const MessageComposer = () => {
                         ? generatedRequest.note
                         : '',
                 hints: normalizeHints(generatedRequest.hints),
-                reportLink:
-                    typeof generatedRequest.report_link === 'string'
-                        ? generatedRequest.report_link
-                        : '',
+                report_link: normalizeReportLink(generatedRequest.report_link),
             });
             setMessage('');
             requestAnimationFrame(resizeTextarea);

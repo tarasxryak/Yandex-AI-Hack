@@ -125,10 +125,10 @@ const RequestDetails = () => {
                 </div>
             )}
 
-            {request.reportLink && (
+            {request.report_link && (
                 <a
                     className={styles.reportLink}
-                    href={request.reportLink}
+                    href={request.report_link}
                     target='_blank'
                     rel='noreferrer'>
                     Скачать отчет
