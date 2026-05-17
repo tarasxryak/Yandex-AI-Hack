@@ -15,6 +15,7 @@ type QueryResponse = {
     success: boolean;
     error?: string;
     graphql?: GeneratedGraphqlRequest | null;
+    report_link?: unknown;
 };
 
 const getRequestTime = () =>
@@ -141,7 +142,9 @@ const MessageComposer = () => {
                         ? generatedRequest.note
                         : '',
                 hints: normalizeHints(generatedRequest.hints),
-                report_link: normalizeReportLink(generatedRequest.report_link),
+                report_link: normalizeReportLink(
+                    generatedRequest.report_link ?? result.report_link,
+                ),
             });
             setMessage('');
             requestAnimationFrame(resizeTextarea);
