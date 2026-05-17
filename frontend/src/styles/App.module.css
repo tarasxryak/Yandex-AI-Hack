@@ -12,11 +12,8 @@
 }
 
 .appShell {
-    display: grid;
-    grid-template-columns: minmax(220px, 280px) minmax(320px, 1fr) minmax(
-            260px,
-            360px
-        );
+    display: flex;
+    width: 100%;
     min-height: 100vh;
     background: var(--color-bg);
 }
@@ -24,6 +21,7 @@
 .panel {
     min-width: 0;
     min-height: 100vh;
+    height: 100vh;
 }
 
 .leftPanel {
@@ -33,6 +31,38 @@
     padding: 16px;
     border-right: 1px solid var(--color-border);
     background: var(--color-bg-secondary);
+}
+
+.resizeHandle {
+    position: relative;
+    width: 8px;
+    flex: 0 0 8px;
+    background: var(--color-bg);
+    cursor: col-resize;
+    transition: background-color 160ms ease;
+}
+
+.resizeHandle::before {
+    content: '';
+    position: absolute;
+    inset: 0 3px;
+    border-radius: 999px;
+    background: var(--color-border);
+    opacity: 0;
+    transition:
+        background-color 160ms ease,
+        opacity 160ms ease;
+}
+
+.resizeHandle:hover::before,
+.resizeHandle[data-resize-handle-active]::before {
+    background: var(--color-accent);
+    opacity: 1;
+}
+
+.resizeHandle:focus-visible {
+    outline: 2px solid var(--color-accent-hover);
+    outline-offset: -2px;
 }
 
 .brand {
@@ -64,21 +94,25 @@
     padding: 9px 12px;
     border-radius: 8px;
     color: var(--color-text-inverse);
-    background: var(--color-accent);
+    background: linear-gradient(
+        45deg,
+        var(--color-accent-active),
+        var(--color-accent)
+    );
     font-size: 14px;
     font-weight: 700;
     transition:
-        background-color 160ms ease,
+        filter 160ms ease,
         transform 160ms ease;
 }
 
 .addWorkspaceButton:hover {
-    background: var(--color-accent-hover);
+    filter: brightness(1.08);
 }
 
 .addWorkspaceButton:active {
     transform: translateY(1px);
-    background: var(--color-accent-active);
+    filter: brightness(0.94);
 }
 
 .addWorkspaceButton:focus-visible {
@@ -109,11 +143,16 @@
     }
 
     .appShell {
-        grid-template-columns: 1fr;
+        flex-direction: column;
     }
 
     .panel {
         min-height: auto;
+        height: auto;
+    }
+
+    .resizeHandle {
+        display: none;
     }
 
     .leftPanel {

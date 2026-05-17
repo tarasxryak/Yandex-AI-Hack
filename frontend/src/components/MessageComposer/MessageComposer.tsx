@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { getApiUrl } from '../../config/api';
 import { useWorkspacesStore } from '../../stores/workspacesStore';
 import styles from './MessageComposer.module.css';
@@ -17,6 +17,8 @@ type QueryResponse = {
 
 const getRequestTime = () =>
     new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
     }).format(new Date());
@@ -25,6 +27,11 @@ const normalizeHints = (hints: unknown) =>
     Array.isArray(hints)
         ? hints.filter((hint): hint is string => typeof hint === 'string')
         : [];
+
+const DEFAULT_INPUT_HEIGHT = 38;
+const COMPACT_INPUT_HEIGHT = 58;
+const COMPACT_INPUT_WIDTH = 365;
+const MAX_INPUT_HEIGHT = 132;
 
 const MessageComposer = () => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -44,9 +51,33 @@ const MessageComposer = () => {
             return;
         }
 
+        const minHeight =
+            textarea.clientWidth < COMPACT_INPUT_WIDTH
+                ? COMPACT_INPUT_HEIGHT
+                : DEFAULT_INPUT_HEIGHT;
+
+        textarea.style.minHeight = `${minHeight}px`;
         textarea.style.height = 'auto';
-        textarea.style.height = `${Math.min(textarea.scrollHeight, 132)}px`;
+        textarea.style.height = `${Math.min(
+            Math.max(textarea.scrollHeight, minHeight),
+            MAX_INPUT_HEIGHT,
+        )}px`;
     };
+
+    useEffect(() => {
+        resizeTextarea();
+
+        const textarea = textareaRef.current;
+
+        if (!textarea) {
+            return;
+        }
+
+        const observer = new ResizeObserver(resizeTextarea);
+        observer.observe(textarea);
+
+        return () => observer.disconnect();
+    }, []);
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
