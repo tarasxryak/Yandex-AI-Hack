@@ -301,7 +301,7 @@ Request:
       "найди персонажей по имени или статусу",
       "выведи эпизоды, в которых появлялся персонаж"
     ],
-    "report_json": "http://localhost:8080/static/66b35dbe07614fd687a56883f1952a72.pdf"
+    "report_link": "http://localhost:8080/static/66b35dbe07614fd687a56883f1952a72.pdf"
   }
 }
 ```
@@ -313,7 +313,7 @@ graphql.query          GraphQL operation, который можно отправ
 graphql.operationName  имя операции или null
 graphql.note           пустая строка, если всё получилось; причина/комментарий, если нет
 graphql.hints          2-3 подсказки на русском, что ещё можно запросить
-graphql.report_json    ссылка на PDF-отчёт или null, если отчёт ещё не найден
+graphql.report_link    ссылка на PDF-отчёт или null, если отчёт ещё не найден
 ```
 
 API не отдаёт GraphQL variables фронту. Если модель сгенерировала query с
@@ -327,7 +327,7 @@ API не отдаёт GraphQL variables фронту. Если модель сг
   "operationName": "GetCharacterByName",
   "note": "",
   "hints": [],
-  "report_json": null
+  "report_link": null
 }
 ```
 
@@ -336,7 +336,7 @@ API не отдаёт GraphQL variables фронту. Если модель сг
 
 PDF берётся из `REPORT_SOURCE_PATH` (`/app/core/product_report.pdf` в Docker) и
 публикуется как `/static/<chat_id>.pdf`. Если файл отчёта ещё не создан, API
-вернёт `"report_json": null`.
+вернёт `"report_link": null`.
 
 Если модель не смогла собрать запрос, `graphql.query` будет пустой строкой, а
 причина будет в `graphql.note`:
@@ -352,7 +352,7 @@ PDF берётся из `REPORT_SOURCE_PATH` (`/app/core/product_report.pdf` в 
       "получи список персонажей с их id и именами",
       "найди персонажей по имени или статусу"
     ],
-    "report_json": null
+    "report_link": null
   }
 }
 ```
@@ -420,7 +420,7 @@ curl -X POST http://localhost:8080/query \
       "найди эпизоды, в названии которых есть определённое слово",
       "выведи информацию о конкретном эпизоде по его ID"
     ],
-    "report_json": "http://localhost:8080/static/66b35dbe07614fd687a56883f1952a72.pdf"
+    "report_link": "http://localhost:8080/static/66b35dbe07614fd687a56883f1952a72.pdf"
   }
 }
 ```
