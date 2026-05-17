@@ -320,6 +320,27 @@ graphql.hints          2-3 подсказки на русском, что ещё
 graphql.report_json    ссылка на PDF-отчёт или null, если отчёт ещё не найден
 ```
 
+Если `graphql.query` объявляет переменные (`$id`, `$name`, `$page`), их значения
+должны лежать в `graphql.variables`:
+
+```json
+{
+  "query": "query GetCharacterByName($name: String!) { characters(filter: { name: $name }) { results { id name } } }",
+  "variables": {
+    "name": "Rick"
+  },
+  "operationName": "GetCharacterByName",
+  "note": "",
+  "hints": [],
+  "report_json": null
+}
+```
+
+API дополнительно пытается дозаполнить отсутствующие variables из `request_body`
+по совпадающему ключу. Например `request_body.name` попадёт в `variables.name`.
+Если значение для объявленной переменной не найдено, причина будет добавлена в
+`graphql.note`.
+
 PDF берётся из `REPORT_SOURCE_PATH` (`/app/core/product_report.pdf` в Docker) и
 публикуется как `/static/<chat_id>.pdf`. Если файл отчёта ещё не создан, API
 вернёт `"report_json": null`.

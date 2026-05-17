@@ -33,6 +33,11 @@ SYSTEM_PROMPT = (
     "для клиента; если всё получилось, note должен быть пустой строкой. "
     "Поле hints всегда возвращай массивом из 2-3 коротких подсказок на русском: что ещё "
     "пользователь может запросить по этой схеме. "
+    "Если в query объявлены GraphQL variables, например $name или $id, обязательно "
+    "заполни одноимённые ключи в variables значениями из тела request или явно "
+    "указанными значениями из текстового описания пользователя. "
+    "Не объявляй переменную в query, если не можешь положить её значение в variables; "
+    "в таком случае верни пустой query и причину в note. "
     "Если невозможно составить GraphQL operation, верни query пустой строкой, variables "
     "пустым объектом, operationName null, note с причиной и hints с вариантами исправления."
 )
@@ -121,7 +126,10 @@ def create_app() -> Flask:
             app.logger.warning("query failed chat_id=%s error=%s", chat_id, exc)
             return jsonify({"success": False, "error": str(exc)}), 502
 
-        graphql = normalize_graphql_answer(parse_graphql_answer(result["answer"]))
+        graphql = normalize_graphql_answer(
+            parse_graphql_answer(result["answer"]),
+            request_body=request_body,
+        )
         graphql["report_json"] = publish_report(chat_id)
         return jsonify(
             {
@@ -195,7 +203,10 @@ def parse_graphql_answer(answer: str) -> dict[str, Any] | None:
     return parsed
 
 
-def normalize_graphql_answer(parsed: dict[str, Any] | None) -> dict[str, Any]:
+def normalize_graphql_answer(
+    parsed: dict[str, Any] | None,
+    request_body: Any = None,
+) -> dict[str, Any]:
     if parsed is None:
         return {
             "query": "",
@@ -214,7 +225,7 @@ def normalize_graphql_answer(parsed: dict[str, Any] | None) -> dict[str, Any]:
 
     normalized_hints = [str(hint).strip() for hint in hints if str(hint).strip()] if isinstance(hints, list) else []
 
-    return {
+    normalized = {
         "query": str(query or ""),
         "variables": variables if isinstance(variables, dict) else {},
         "operationName": operation_name if operation_name is None else str(operation_name),
@@ -222,6 +233,35 @@ def normalize_graphql_answer(parsed: dict[str, Any] | None) -> dict[str, Any]:
         "hints": normalized_hints,
         "report_json": None,
     }
+    complete_graphql_variables(normalized, request_body)
+    return normalized
+
+
+def complete_graphql_variables(graphql: dict[str, Any], request_body: Any) -> None:
+    query = str(graphql.get("query") or "")
+    variables = graphql.get("variables")
+    if not query or not isinstance(variables, dict):
+        return
+
+    declared_variables = declared_graphql_variables(query)
+    if not declared_variables:
+        return
+
+    if isinstance(request_body, dict):
+        for variable_name in declared_variables:
+            if variable_name not in variables and variable_name in request_body:
+                variables[variable_name] = request_body[variable_name]
+
+    missing_variables = [name for name in declared_variables if name not in variables]
+    if missing_variables:
+        note = str(graphql.get("note") or "").strip()
+        missing_text = ", ".join(f"${name}" for name in missing_variables)
+        auto_note = f"Не хватает значений для GraphQL variables: {missing_text}."
+        graphql["note"] = f"{note} {auto_note}".strip()
+
+
+def declared_graphql_variables(query: str) -> list[str]:
+    return list(dict.fromkeys(re.findall(r"\$([A-Za-z_][A-Za-z0-9_]*)\s*:", query)))
 
 
 def publish_report(chat_id: str) -> str | None:
