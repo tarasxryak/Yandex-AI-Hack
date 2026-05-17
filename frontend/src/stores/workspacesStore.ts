@@ -8,6 +8,7 @@ export type WorkspaceRequest = {
     query: unknown;
     note: string;
     hints: string[];
+    reportLink: string;
 };
 
 export type Workspace = {

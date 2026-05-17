@@ -1,3 +1,4 @@
+import { useMessageComposerStore } from '../../stores/messageComposerStore';
 import { useWorkspacesStore } from '../../stores/workspacesStore';
 import styles from './RequestDetails.module.css';
 
@@ -48,6 +49,7 @@ const formatQueryValue = (query: unknown) => {
 };
 
 const RequestDetails = () => {
+    const appendDraft = useMessageComposerStore(state => state.appendDraft);
     const request = useWorkspacesStore(state => {
         if (!state.activeWorkspaceId || !state.activeRequestId) {
             return null;
@@ -105,15 +107,32 @@ const RequestDetails = () => {
                 </div>
             )}
 
-            {request.hints.length > 0 && (
+            {(request.hints?.length ?? 0) > 0 && (
                 <div className={styles.block}>
                     <h3 className={styles.blockTitle}>Hints</h3>
                     <ul className={styles.hints}>
                         {request.hints.map(hint => (
-                            <li key={hint}>{hint}</li>
+                            <li key={hint}>
+                                <button
+                                    className={styles.hintButton}
+                                    type='button'
+                                    onClick={() => appendDraft(hint)}>
+                                    {hint}
+                                </button>
+                            </li>
                         ))}
                     </ul>
                 </div>
+            )}
+
+            {request.reportLink && (
+                <a
+                    className={styles.reportLink}
+                    href={request.reportLink}
+                    target='_blank'
+                    rel='noreferrer'>
+                    Скачать отчет
+                </a>
             )}
         </section>
     );

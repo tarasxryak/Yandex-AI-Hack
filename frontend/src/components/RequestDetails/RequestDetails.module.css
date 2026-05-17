@@ -79,10 +79,66 @@
 }
 
 .hints li {
+    display: flex;
+}
+
+.hintButton {
+    width: 100%;
     padding: 9px 10px;
     border: 1px solid var(--color-border);
     border-radius: 8px;
+    color: var(--color-text-secondary);
     background: var(--color-surface);
+    text-align: left;
+    transition:
+        border-color 160ms ease,
+        color 160ms ease,
+        background-color 160ms ease;
+}
+
+.hintButton:hover {
+    border-color: var(--color-border-strong);
+    color: var(--color-text);
+    background: var(--color-surface-elevated);
+}
+
+.hintButton:focus-visible {
+    outline: 2px solid var(--color-accent-hover);
+    outline-offset: 2px;
+}
+
+.reportLink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    color: var(--color-text-inverse);
+    background: linear-gradient(
+        135deg,
+        var(--color-accent),
+        var(--color-accent-secondary)
+    );
+    font-size: 0.875rem;
+    font-weight: 800;
+    transition:
+        filter 160ms ease,
+        transform 160ms ease;
+}
+
+.reportLink:hover {
+    filter: brightness(1.08);
+}
+
+.reportLink:active {
+    transform: translateY(1px);
+    filter: brightness(0.94);
+}
+
+.reportLink:focus-visible {
+    outline: 2px solid var(--color-accent-hover);
+    outline-offset: 2px;
 }
 
 .emptyState {

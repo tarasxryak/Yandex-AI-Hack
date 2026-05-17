@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { getApiUrl } from '../../config/api';
+import { useMessageComposerStore } from '../../stores/messageComposerStore';
 import { useWorkspacesStore } from '../../stores/workspacesStore';
 import styles from './MessageComposer.module.css';
 
@@ -7,6 +8,7 @@ type GeneratedGraphqlRequest = {
     query?: unknown;
     note?: unknown;
     hints?: unknown;
+    report_link?: unknown;
 };
 
 type QueryResponse = {
@@ -39,8 +41,9 @@ const MessageComposer = () => {
         state => state.activeWorkspaceId,
     );
     const addRequest = useWorkspacesStore(state => state.addRequest);
+    const message = useMessageComposerStore(state => state.draft);
+    const setMessage = useMessageComposerStore(state => state.setDraft);
 
-    const [message, setMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState('');
 
@@ -78,6 +81,10 @@ const MessageComposer = () => {
 
         return () => observer.disconnect();
     }, []);
+
+    useEffect(() => {
+        requestAnimationFrame(resizeTextarea);
+    }, [message]);
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -124,6 +131,10 @@ const MessageComposer = () => {
                         ? generatedRequest.note
                         : '',
                 hints: normalizeHints(generatedRequest.hints),
+                reportLink:
+                    typeof generatedRequest.report_link === 'string'
+                        ? generatedRequest.report_link
+                        : '',
             });
             setMessage('');
             requestAnimationFrame(resizeTextarea);
