@@ -20,9 +20,18 @@ SYSTEM_PROMPT = (
     "составляй корректный GraphQL operation для API из workspace. Учитывай контекст "
     "workspace: схему, доступные query/mutation, типы, поля и ограничения. "
     "Возвращай только JSON без markdown, без ``` и без поясняющего текста: "
-    '{"query":"<GraphQL operation>","variables":{...},"operationName":"<name or null>"}. '
-    "Если данных недостаточно или нужного поля нет в схеме, верни JSON с ключом error и "
-    "коротким explanation."
+    '{"query":"<GraphQL operation or empty string>","variables":{...},'
+    '"operationName":"<name or null>","note":"<short note or empty string>",'
+    '"hints":["<related useful request in Russian>",'
+    '"<another related useful request in Russian>",'
+    '"<another related useful request in Russian>"]}. '
+    "Поле note заполняй только если запрос удалось выполнить не полностью, есть "
+    "неоднозначность, не хватает данных, поле отсутствует в схеме или нужен комментарий "
+    "для клиента; если всё получилось, note должен быть пустой строкой. "
+    "Поле hints всегда возвращай массивом из 2-3 коротких подсказок на русском: что ещё "
+    "пользователь может запросить по этой схеме. "
+    "Если невозможно составить GraphQL operation, верни query пустой строкой, variables "
+    "пустым объектом, operationName null, note с причиной и hints с вариантами исправления."
 )
 
 
@@ -103,7 +112,7 @@ def create_app() -> Flask:
             app.logger.warning("query failed chat_id=%s error=%s", chat_id, exc)
             return jsonify({"success": False, "error": str(exc)}), 502
 
-        graphql = parse_graphql_answer(result["answer"])
+        graphql = normalize_graphql_answer(parse_graphql_answer(result["answer"]))
         return jsonify(
             {
                 "success": True,
@@ -177,6 +186,33 @@ def parse_graphql_answer(answer: str) -> dict[str, Any] | None:
     if not isinstance(parsed, dict):
         return None
     return parsed
+
+
+def normalize_graphql_answer(parsed: dict[str, Any] | None) -> dict[str, Any]:
+    if parsed is None:
+        return {
+            "query": "",
+            "variables": {},
+            "operationName": None,
+            "note": "Модель вернула ответ не в JSON-формате.",
+            "hints": [],
+        }
+
+    query = parsed.get("query")
+    variables = parsed.get("variables")
+    operation_name = parsed.get("operationName")
+    note = parsed.get("note")
+    hints = parsed.get("hints")
+
+    normalized_hints = [str(hint).strip() for hint in hints if str(hint).strip()] if isinstance(hints, list) else []
+
+    return {
+        "query": str(query or ""),
+        "variables": variables if isinstance(variables, dict) else {},
+        "operationName": operation_name if operation_name is None else str(operation_name),
+        "note": str(note or ""),
+        "hints": normalized_hints,
+    }
 
 
 def run_introspection(
