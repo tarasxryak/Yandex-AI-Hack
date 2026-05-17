@@ -1,11 +1,14 @@
 import json
 import logging
 import os
+import re
+import shutil
+from pathlib import Path
 from uuid import uuid4
 from typing import Any
 
 import requests
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from werkzeug.exceptions import BadRequest
 
@@ -38,14 +41,20 @@ SYSTEM_PROMPT = (
 def create_app() -> Flask:
     load_dotenv()
 
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder=None)
     configure_cors(app)
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
     init_db()
+    reports_dir().mkdir(parents=True, exist_ok=True)
 
     @app.get("/healthz")
     def healthz():
         return jsonify({"status": "ok"})
+
+    @app.get("/static/<path:filename>")
+    def static_file(filename: str):
+        ensure_report_file(filename)
+        return send_from_directory(reports_dir(), filename)
 
     @app.post("/create_workspace")
     def create_workspace_route():
@@ -113,6 +122,7 @@ def create_app() -> Flask:
             return jsonify({"success": False, "error": str(exc)}), 502
 
         graphql = normalize_graphql_answer(parse_graphql_answer(result["answer"]))
+        graphql["report_json"] = publish_report(chat_id)
         return jsonify(
             {
                 "success": True,
@@ -193,6 +203,7 @@ def normalize_graphql_answer(parsed: dict[str, Any] | None) -> dict[str, Any]:
             "operationName": None,
             "note": "Модель вернула ответ не в JSON-формате.",
             "hints": [],
+            "report_json": None,
         }
 
     query = parsed.get("query")
@@ -209,7 +220,66 @@ def normalize_graphql_answer(parsed: dict[str, Any] | None) -> dict[str, Any]:
         "operationName": operation_name if operation_name is None else str(operation_name),
         "note": str(note or ""),
         "hints": normalized_hints,
+        "report_json": None,
     }
+
+
+def publish_report(chat_id: str) -> str | None:
+    source_path = report_source_path()
+    filename = f"{safe_report_id(chat_id)}.pdf"
+    if source_path is None:
+        return None
+
+    if not copy_report(source_path, filename):
+        return None
+    return f"{request.host_url.rstrip('/')}/static/{filename}"
+
+
+def ensure_report_file(filename: str) -> None:
+    target_path = reports_dir() / filename
+    if target_path.is_file() or "/" in filename or not filename.endswith(".pdf"):
+        return
+
+    source_path = report_source_path()
+    if source_path is not None:
+        copy_report(source_path, filename)
+
+
+def copy_report(source_path: Path, filename: str) -> bool:
+    target_path = reports_dir() / filename
+    try:
+        shutil.copyfile(source_path, target_path)
+    except OSError:
+        return False
+    return True
+
+
+def report_source_path() -> Path | None:
+    configured = os.getenv("REPORT_SOURCE_PATH", "").strip()
+    candidates = [configured] if configured else []
+    candidates.extend(
+        [
+            "/app/core/product_report.pdf",
+            "../../core/product_report.pdf",
+            "../core/product_report.pdf",
+            "product_report.pdf",
+        ]
+    )
+
+    for candidate in candidates:
+        path = Path(candidate)
+        if path.is_file():
+            return path
+    return None
+
+
+def reports_dir() -> Path:
+    return Path(os.getenv("REPORTS_DIR", "static"))
+
+
+def safe_report_id(value: str) -> str:
+    safe = re.sub(r"[^a-zA-Z0-9_.-]+", "-", value).strip(".-")
+    return safe or uuid4().hex
 
 
 def run_introspection(

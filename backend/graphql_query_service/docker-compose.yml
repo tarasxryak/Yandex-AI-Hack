@@ -13,8 +13,13 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-ruchki}
       MYSQL_USER: ${MYSQL_USER:-ruchki}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ruchki}
+      REPORTS_DIR: /app/static
+      REPORT_SOURCE_PATH: /app/core/product_report.pdf
     ports:
       - "${API_BIND:-0.0.0.0}:${API_PORT:-8080}:8080"
+    volumes:
+      - report-static:/app/static
+      - ../../core:/app/core:ro
     depends_on:
       mysql:
         condition: service_healthy
@@ -85,3 +90,4 @@ services:
 volumes:
   mysql-data:
   nocodb-data:
+  report-static:
