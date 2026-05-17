@@ -116,11 +116,8 @@ def create_app() -> Flask:
         return jsonify(
             {
                 "success": True,
-                "id": chat_id,
                 "chat_id": chat_id,
-                "answer": result["answer"],
                 "graphql": graphql,
-                "raw": result["raw"],
             }
         )
 

@@ -285,9 +285,7 @@ Request:
 ```json
 {
   "success": true,
-  "id": "66b35dbe07614fd687a56883f1952a72",
   "chat_id": "66b35dbe07614fd687a56883f1952a72",
-  "answer": "...сырой ответ модели...",
   "graphql": {
     "query": "query GetCharacter($id: ID!) { character(id: $id) { id name status species } }",
     "variables": {
@@ -300,12 +298,38 @@ Request:
       "найди персонажей по имени или статусу",
       "выведи эпизоды, в которых появлялся персонаж"
     ]
-  },
-  "raw": {}
+  }
 }
 ```
 
-Главное поле для клиента — `graphql`.
+Главное поле для клиента — `graphql`. Стабильный контракт для фронта:
+
+```text
+graphql.query          GraphQL operation, который можно отправлять в целевой API
+graphql.variables      variables для GraphQL operation
+graphql.operationName  имя операции или null
+graphql.note           пустая строка, если всё получилось; причина/комментарий, если нет
+graphql.hints          2-3 подсказки на русском, что ещё можно запросить
+```
+
+Если модель не смогла собрать запрос, `graphql.query` будет пустой строкой, а
+причина будет в `graphql.note`:
+
+```json
+{
+  "graphql": {
+    "query": "",
+    "variables": {},
+    "operationName": null,
+    "note": "Не хватает id персонажа для запроса.",
+    "hints": [
+      "укажи id персонажа и поля, которые нужно получить",
+      "получи список персонажей с их id и именами",
+      "найди персонажей по имени или статусу"
+    ]
+  }
+}
+```
 
 Если для `id` ещё нет схемы, ответ `404`:
 
@@ -360,7 +384,6 @@ curl -X POST http://localhost:8080/query \
 ```json
 {
   "success": true,
-  "id": "66b35dbe07614fd687a56883f1952a72",
   "chat_id": "66b35dbe07614fd687a56883f1952a72",
   "graphql": {
     "query": "query ...",
