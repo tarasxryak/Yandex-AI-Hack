@@ -48,6 +48,16 @@ const formatQueryValue = (query: unknown) => {
     return JSON.stringify(query, null, 2);
 };
 
+const normalizeReportLink = (reportLink: unknown) => {
+    if (typeof reportLink !== 'string') {
+        return null;
+    }
+
+    const trimmedReportLink = reportLink.trim();
+
+    return trimmedReportLink || null;
+};
+
 const RequestDetails = () => {
     const appendDraft = useMessageComposerStore(state => state.appendDraft);
     const request = useWorkspacesStore(state => {
@@ -75,6 +85,10 @@ const RequestDetails = () => {
     }
 
     const formattedQuery = formatQueryValue(request.query);
+    const reportLink = normalizeReportLink(
+        request.report_link ??
+            (request as { reportLink?: unknown }).reportLink,
+    );
 
     return (
         <section className={styles.root}>
@@ -125,10 +139,10 @@ const RequestDetails = () => {
                 </div>
             )}
 
-            {request.report_link && (
+            {reportLink && (
                 <a
                     className={styles.reportLink}
-                    href={request.report_link}
+                    href={reportLink}
                     target='_blank'
                     rel='noreferrer'>
                     Скачать отчет
