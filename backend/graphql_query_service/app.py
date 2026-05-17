@@ -33,11 +33,10 @@ SYSTEM_PROMPT = (
     "для клиента; если всё получилось, note должен быть пустой строкой. "
     "Поле hints всегда возвращай массивом из 2-3 коротких подсказок на русском: что ещё "
     "пользователь может запросить по этой схеме. "
-    "Если в query объявлены GraphQL variables, например $name или $id, обязательно "
-    "заполни одноимённые ключи в variables значениями из тела request или явно "
-    "указанными значениями из текстового описания пользователя. "
-    "Не объявляй переменную в query, если не можешь положить её значение в variables; "
-    "в таком случае верни пустой query и причину в note. "
+    "Не используй GraphQL variables в query. Подставляй значения из тела request или "
+    "текста пользователя прямо в GraphQL operation: name: \"Rick\", id: \"1\", page: 2. "
+    "Поле variables всегда возвращай пустым объектом {}. "
+    "Если значения для аргумента нет, верни пустой query и причину в note. "
     "Если невозможно составить GraphQL operation, верни query пустой строкой, variables "
     "пустым объектом, operationName null, note с причиной и hints с вариантами исправления."
 )
@@ -131,6 +130,7 @@ def create_app() -> Flask:
             request_body=request_body,
         )
         graphql["report_json"] = publish_report(chat_id)
+        graphql.pop("variables", None)
         return jsonify(
             {
                 "success": True,
@@ -234,6 +234,7 @@ def normalize_graphql_answer(
         "report_json": None,
     }
     complete_graphql_variables(normalized, request_body)
+    inline_graphql_variables(normalized)
     return normalized
 
 
@@ -262,6 +263,61 @@ def complete_graphql_variables(graphql: dict[str, Any], request_body: Any) -> No
 
 def declared_graphql_variables(query: str) -> list[str]:
     return list(dict.fromkeys(re.findall(r"\$([A-Za-z_][A-Za-z0-9_]*)\s*:", query)))
+
+
+def inline_graphql_variables(graphql: dict[str, Any]) -> None:
+    query = str(graphql.get("query") or "")
+    variables = graphql.get("variables")
+    if not query or not isinstance(variables, dict):
+        return
+
+    declared_variables = declared_graphql_variables(query)
+    if not declared_variables:
+        graphql["variables"] = {}
+        return
+
+    missing_variables = [name for name in declared_variables if name not in variables]
+    if missing_variables:
+        note = str(graphql.get("note") or "").strip()
+        missing_text = ", ".join(f"${name}" for name in missing_variables)
+        auto_note = f"Нельзя подставить значения в GraphQL query: не хватает {missing_text}."
+        graphql["query"] = ""
+        graphql["variables"] = {}
+        graphql["note"] = f"{note} {auto_note}".strip()
+        return
+
+    inlined_query = query
+    for variable_name in declared_variables:
+        inlined_query = re.sub(
+            rf"\${re.escape(variable_name)}\b",
+            graphql_literal(variables[variable_name]),
+            inlined_query,
+        )
+
+    inlined_query = re.sub(
+        r"\b(query|mutation|subscription)(\s+[A-Za-z_][A-Za-z0-9_]*)?\s*\([^)]*\)",
+        lambda match: f"{match.group(1)}{match.group(2) or ''}",
+        inlined_query,
+        count=1,
+    )
+
+    graphql["query"] = inlined_query
+    graphql["variables"] = {}
+
+
+def graphql_literal(value: Any) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return str(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(graphql_literal(item) for item in value) + "]"
+    if isinstance(value, dict):
+        fields = [f"{key}: {graphql_literal(item)}" for key, item in value.items()]
+        return "{" + ", ".join(fields) + "}"
+    return json.dumps(str(value), ensure_ascii=False)
 
 
 def publish_report(chat_id: str) -> str | None:

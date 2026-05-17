@@ -293,10 +293,7 @@ Request:
   "success": true,
   "chat_id": "66b35dbe07614fd687a56883f1952a72",
   "graphql": {
-    "query": "query GetCharacter($id: ID!) { character(id: $id) { id name status species } }",
-    "variables": {
-      "id": "1"
-    },
+    "query": "query GetCharacter { character(id: \"1\") { id name status species } }",
     "operationName": "GetCharacter",
     "note": "",
     "hints": [
@@ -313,22 +310,20 @@ Request:
 
 ```text
 graphql.query          GraphQL operation, который можно отправлять в целевой API
-graphql.variables      variables для GraphQL operation
 graphql.operationName  имя операции или null
 graphql.note           пустая строка, если всё получилось; причина/комментарий, если нет
 graphql.hints          2-3 подсказки на русском, что ещё можно запросить
 graphql.report_json    ссылка на PDF-отчёт или null, если отчёт ещё не найден
 ```
 
-Если `graphql.query` объявляет переменные (`$id`, `$name`, `$page`), их значения
-должны лежать в `graphql.variables`:
+API не отдаёт GraphQL variables фронту. Если модель сгенерировала query с
+переменными (`$id`, `$name`, `$page`) и значения есть в `variables` или
+`request_body`, API подставит значения прямо в `graphql.query` и вырежет поле
+`variables` из ответа:
 
 ```json
 {
-  "query": "query GetCharacterByName($name: String!) { characters(filter: { name: $name }) { results { id name } } }",
-  "variables": {
-    "name": "Rick"
-  },
+  "query": "query GetCharacterByName { characters(filter: { name: \"Rick\" }) { results { id name } } }",
   "operationName": "GetCharacterByName",
   "note": "",
   "hints": [],
@@ -336,10 +331,8 @@ graphql.report_json    ссылка на PDF-отчёт или null, если о
 }
 ```
 
-API дополнительно пытается дозаполнить отсутствующие variables из `request_body`
-по совпадающему ключу. Например `request_body.name` попадёт в `variables.name`.
-Если значение для объявленной переменной не найдено, причина будет добавлена в
-`graphql.note`.
+Если значение для объявленной переменной не найдено, `graphql.query` будет пустой,
+а причина будет добавлена в `graphql.note`.
 
 PDF берётся из `REPORT_SOURCE_PATH` (`/app/core/product_report.pdf` в Docker) и
 публикуется как `/static/<chat_id>.pdf`. Если файл отчёта ещё не создан, API
@@ -352,7 +345,6 @@ PDF берётся из `REPORT_SOURCE_PATH` (`/app/core/product_report.pdf` в 
 {
   "graphql": {
     "query": "",
-    "variables": {},
     "operationName": null,
     "note": "Не хватает id персонажа для запроса.",
     "hints": [
@@ -421,7 +413,6 @@ curl -X POST http://localhost:8080/query \
   "chat_id": "66b35dbe07614fd687a56883f1952a72",
   "graphql": {
     "query": "query ...",
-    "variables": {},
     "operationName": "...",
     "note": "",
     "hints": [
