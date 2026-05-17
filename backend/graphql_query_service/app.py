@@ -129,7 +129,7 @@ def create_app() -> Flask:
             parse_graphql_answer(result["answer"]),
             request_body=request_body,
         )
-        graphql["report_json"] = publish_report(chat_id)
+        graphql["report_link"] = publish_report(chat_id)
         graphql.pop("variables", None)
         return jsonify(
             {
@@ -214,7 +214,7 @@ def normalize_graphql_answer(
             "operationName": None,
             "note": "Модель вернула ответ не в JSON-формате.",
             "hints": [],
-            "report_json": None,
+            "report_link": None,
         }
 
     query = parsed.get("query")
@@ -231,7 +231,7 @@ def normalize_graphql_answer(
         "operationName": operation_name if operation_name is None else str(operation_name),
         "note": str(note or ""),
         "hints": normalized_hints,
-        "report_json": None,
+        "report_link": None,
     }
     complete_graphql_variables(normalized, request_body)
     inline_graphql_variables(normalized)
