@@ -119,29 +119,27 @@ const MessageComposer = () => {
                         setMessage(event.target.value);
                         requestAnimationFrame(resizeTextarea);
                     }}
-                    placeholder="Опишите, какой GraphQL запрос нужно собрать"
+                    placeholder='Опишите, какой GraphQL запрос нужно собрать'
                     rows={1}
                     disabled={isSending}
                 />
                 <button
                     className={styles.submitButton}
-                    type="submit"
+                    type='submit'
                     disabled={isSending || !message.trim()}
-                    aria-label="Отправить запрос"
-                    title="Отправить запрос"
-                >
+                    aria-label='Отправить запрос'
+                    title='Отправить запрос'>
                     <svg
                         className={styles.submitIcon}
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                    >
+                        viewBox='0 0 24 24'
+                        aria-hidden='true'>
                         <path
-                            d="M5 12h14M13 6l6 6-6 6"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2.4"
+                            d='M5 12h14M13 6l6 6-6 6'
+                            fill='none'
+                            stroke='currentColor'
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                            strokeWidth='2.4'
                         />
                     </svg>
                 </button>

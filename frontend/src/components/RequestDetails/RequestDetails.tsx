@@ -24,9 +24,7 @@ const formatGraphqlQuery = (query: string) =>
                     part === '{'
                         ? `${'  '.repeat(lines.indent)}{`
                         : `${'  '.repeat(lines.indent)}${part}`;
-                const indent = part === '{'
-                    ? lines.indent + 1
-                    : lines.indent;
+                const indent = part === '{' ? lines.indent + 1 : lines.indent;
 
                 return {
                     indent,

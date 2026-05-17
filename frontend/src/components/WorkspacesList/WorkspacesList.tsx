@@ -38,7 +38,9 @@ const WorkspacesList = () => {
                                 <button
                                     className={styles.deleteButton}
                                     type='button'
-                                    onClick={() => deleteWorkspace(workspace.id)}
+                                    onClick={() =>
+                                        deleteWorkspace(workspace.id)
+                                    }
                                     aria-label={`Удалить ${workspace.title}`}
                                     title='Удалить воркспейс'>
                                     <svg
