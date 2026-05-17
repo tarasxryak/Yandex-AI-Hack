@@ -1,4 +1,5 @@
-.workspaceButton:focus-visible {
+.workspaceButton:focus-visible,
+.deleteButton:focus-visible {
     outline: 2px solid var(--color-accent-hover);
     outline-offset: 2px;
 }
@@ -11,14 +12,18 @@
     overflow-y: auto;
 }
 
+.item {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
 .workspaceButton {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
     width: 100%;
     min-height: 40px;
-    padding: 8px 10px;
+    padding: 8px 44px 8px 10px;
     border-radius: 8px;
     color: var(--color-text-secondary);
     text-align: left;
@@ -37,6 +42,17 @@
     background: var(--color-accent-soft);
 }
 
+.item:hover .workspaceButton,
+.item:focus-within .workspaceButton {
+    color: var(--color-text);
+    background: var(--color-surface);
+}
+
+.item:hover .workspaceButton.active,
+.item:focus-within .workspaceButton.active {
+    background: var(--color-accent-soft);
+}
+
 .workspaceName {
     min-width: 0;
     overflow: hidden;
@@ -47,6 +63,8 @@
 }
 
 .chatCount {
+    position: absolute;
+    right: 10px;
     display: grid;
     place-items: center;
     min-width: 24px;
@@ -57,6 +75,50 @@
     background: var(--color-surface-elevated);
     font-size: 12px;
     font-weight: 700;
+    pointer-events: none;
+    transition:
+        opacity 160ms ease,
+        transform 160ms ease;
+}
+
+.deleteButton {
+    position: absolute;
+    right: 7px;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    color: var(--color-text-muted);
+    opacity: 0;
+    transform: scale(0.88);
+    transition:
+        background-color 160ms ease,
+        color 160ms ease,
+        opacity 160ms ease,
+        transform 160ms ease;
+}
+
+.deleteButton:hover {
+    color: var(--color-error);
+    background: rgb(255 107 122 / 0.1);
+}
+
+.deleteIcon {
+    width: 16px;
+    height: 16px;
+}
+
+.item:hover .chatCount,
+.item:focus-within .chatCount {
+    opacity: 0;
+    transform: scale(0.88);
+}
+
+.item:hover .deleteButton,
+.item:focus-within .deleteButton {
+    opacity: 1;
+    transform: scale(1);
 }
 
 .emptyState {

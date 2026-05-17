@@ -9,6 +9,7 @@ const WorkspacesList = () => {
     const setActiveWorkspaceId = useWorkspacesStore(
         state => state.setActiveWorkspaceId,
     );
+    const deleteWorkspace = useWorkspacesStore(state => state.deleteWorkspace);
 
     return (
         <>
@@ -18,7 +19,7 @@ const WorkspacesList = () => {
                         const isActive = workspace.id === activeWorkspaceId;
 
                         return (
-                            <li key={workspace.id}>
+                            <li className={styles.item} key={workspace.id}>
                                 <button
                                     className={`${styles.workspaceButton} ${
                                         isActive ? styles.active : ''
@@ -30,9 +31,28 @@ const WorkspacesList = () => {
                                     <span className={styles.workspaceName}>
                                         {workspace.title}
                                     </span>
-                                    <span className={styles.chatCount}>
-                                        {workspace.requests.length}
-                                    </span>
+                                </button>
+                                <span className={styles.chatCount}>
+                                    {workspace.requests.length}
+                                </span>
+                                <button
+                                    className={styles.deleteButton}
+                                    type='button'
+                                    onClick={() => deleteWorkspace(workspace.id)}
+                                    aria-label={`Удалить ${workspace.title}`}
+                                    title='Удалить воркспейс'>
+                                    <svg
+                                        className={styles.deleteIcon}
+                                        viewBox='0 0 24 24'
+                                        aria-hidden='true'>
+                                        <path
+                                            d='M6 6l12 12M18 6 6 18'
+                                            fill='none'
+                                            stroke='currentColor'
+                                            strokeLinecap='round'
+                                            strokeWidth='2.2'
+                                        />
+                                    </svg>
                                 </button>
                             </li>
                         );

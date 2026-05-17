@@ -23,6 +23,7 @@ type WorkspacesState = {
     activeRequestId: string | null;
     addWorkspace: (title: string) => void;
     addRequest: (workspaceId: string, request: WorkspaceRequest) => void;
+    deleteWorkspace: (workspaceId: string) => void;
     saveWorkspace: (workspace: Workspace) => void;
     setActiveWorkspaceId: (workspaceId: string | null) => void;
     setActiveRequestId: (workspaceId: string) => void;
@@ -64,6 +65,25 @@ export const useWorkspacesStore = create<WorkspacesState>()(
                     ),
                     activeRequestId: request.id,
                 }));
+            },
+            deleteWorkspace: workspaceId => {
+                set((state: WorkspacesState) => {
+                    const workspaces = state.workspaces.filter(
+                        workspace => workspace.id !== workspaceId,
+                    );
+                    const isActiveWorkspace =
+                        state.activeWorkspaceId === workspaceId;
+
+                    return {
+                        workspaces,
+                        activeWorkspaceId: isActiveWorkspace
+                            ? null
+                            : state.activeWorkspaceId,
+                        activeRequestId: isActiveWorkspace
+                            ? null
+                            : state.activeRequestId,
+                    };
+                });
             },
             saveWorkspace: workspace => {
                 set((state: WorkspacesState) => {

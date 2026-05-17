@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { getApiUrl } from '../../config/api';
 import { useWorkspacesStore } from '../../stores/workspacesStore';
 import styles from './MessageComposer.module.css';
@@ -27,6 +27,7 @@ const normalizeHints = (hints: unknown) =>
         : [];
 
 const MessageComposer = () => {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const activeWorkspaceId = useWorkspacesStore(
         state => state.activeWorkspaceId,
     );
@@ -35,6 +36,17 @@ const MessageComposer = () => {
     const [message, setMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState('');
+
+    const resizeTextarea = () => {
+        const textarea = textareaRef.current;
+
+        if (!textarea) {
+            return;
+        }
+
+        textarea.style.height = 'auto';
+        textarea.style.height = `${Math.min(textarea.scrollHeight, 132)}px`;
+    };
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -83,6 +95,7 @@ const MessageComposer = () => {
                 hints: normalizeHints(generatedRequest.hints),
             });
             setMessage('');
+            requestAnimationFrame(resizeTextarea);
         } catch (submitError) {
             setError(
                 submitError instanceof Error
@@ -99,9 +112,13 @@ const MessageComposer = () => {
             {error && <p className={styles.error}>{error}</p>}
             <form className={styles.form} onSubmit={handleSubmit}>
                 <textarea
+                    ref={textareaRef}
                     className={styles.input}
                     value={message}
-                    onChange={event => setMessage(event.target.value)}
+                    onChange={event => {
+                        setMessage(event.target.value);
+                        requestAnimationFrame(resizeTextarea);
+                    }}
                     placeholder="Опишите, какой GraphQL запрос нужно собрать"
                     rows={1}
                     disabled={isSending}
